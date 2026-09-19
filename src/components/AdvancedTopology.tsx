@@ -67,9 +67,18 @@ export function AdvancedTopology({
             </feMerge>
           </filter>
           
-          {/* Power flow animation */}
-          <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-            <polygon points="0 0, 10 3, 0 6" fill="#ff4d1c" />
+          {/* Power flow arrows */}
+          <marker id="arrowhead" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,12 L10,6 z" fill="#ff4d1c" opacity="0.9" />
+          </marker>
+          <marker id="arrowhead-grid" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,12 L10,6 z" fill="#4f46e5" opacity="0.9" />
+          </marker>
+          <marker id="arrowhead-solar" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,12 L10,6 z" fill="#f59e0b" opacity="0.9" />
+          </marker>
+          <marker id="arrowhead-battery" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,12 L10,6 z" fill="#10b981" opacity="0.9" />
           </marker>
         </defs>
         
@@ -256,34 +265,58 @@ export function AdvancedTopology({
         {/* ===== POWER FLOW LINES ===== */}
         {/* Grid → Inverter */}
         <path
-          d="M 160 110 Q 250 150 320 180"
+          d="M 150 100 C 200 120, 280 160, 340 190"
           fill="none"
           stroke={gridAvailable ? '#4f46e5' : '#e5e2db'}
-          strokeWidth={gridAvailable ? 3 : 1.5}
-          strokeDasharray={gridAvailable ? '8 4' : '0'}
-          opacity={gridAvailable ? 0.8 : 0.3}
-          markerEnd={gridAvailable ? 'url(#arrowhead)' : ''}
+          strokeWidth={gridAvailable ? 5 : 2}
+          strokeDasharray={gridAvailable ? '12 6' : '6 6'}
+          opacity={gridAvailable ? 1 : 0.4}
+          markerEnd={gridAvailable ? "url(#arrowhead-grid)" : "url(#arrowhead)"}
+          strokeLinecap="round"
+          filter={gridAvailable ? "url(#glow)" : ""}
         >
           {gridAvailable && (
-            <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1s" repeatCount="indefinite" />
+            <animate attributeName="stroke-dashoffset" from="0" to="-36" dur="1.5s" repeatCount="indefinite" />
           )}
         </path>
         
+        {/* Grid connection label */}
+        {gridAvailable && (
+          <g transform="translate(220, 130)">
+            <rect x="-30" y="-12" width="60" height="24" rx="6" fill="#4f46e5" opacity="0.95" filter="url(#glow)" />
+            <text x="0" y="4" textAnchor="middle" fontSize="10" fill="white" fontFamily="var(--font-mono)" fontWeight="700">
+              GRID →
+            </text>
+          </g>
+        )}
+        
         {/* Solar → Inverter */}
         {hasSolar && (
-          <path
-            d="M 640 130 Q 550 160 480 180"
-            fill="none"
-            stroke={solarW > 0 ? '#f59e0b' : '#e5e2db'}
-            strokeWidth={solarW > 0 ? 2 + (solarW / 1000) * 2 : 1.5}
-            strokeDasharray={solarW > 0 ? '8 4' : '0'}
-            opacity={solarW > 0 ? 0.8 : 0.3}
-            markerEnd={solarW > 0 ? 'url(#arrowhead)' : ''}
-          >
+          <>
+            <path
+              d="M 640 130 Q 550 160 480 180"
+              fill="none"
+              stroke={solarW > 0 ? '#f59e0b' : '#e5e2db'}
+              strokeWidth={solarW > 0 ? 3 + (solarW / 1000) * 2 : 1.5}
+              strokeDasharray={solarW > 0 ? '10 5' : '5 5'}
+              opacity={solarW > 0 ? 1 : 0.4}
+              markerEnd={solarW > 0 ? 'url(#arrowhead-solar)' : 'url(#arrowhead)'}
+              strokeLinecap="round"
+              filter={solarW > 0 ? "url(#glow)" : ""}
+            >
+              {solarW > 0 && (
+                <animate attributeName="stroke-dashoffset" from="0" to="-30" dur="1.5s" repeatCount="indefinite" />
+              )}
+            </path>
             {solarW > 0 && (
-              <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1s" repeatCount="indefinite" />
+              <g transform="translate(560, 150)">
+                <rect x="-30" y="-12" width="60" height="24" rx="6" fill="#f59e0b" opacity="0.95" filter="url(#glow)" />
+                <text x="0" y="4" textAnchor="middle" fontSize="10" fill="white" fontFamily="var(--font-mono)" fontWeight="700">
+                  SOLAR →
+                </text>
+              </g>
             )}
-          </path>
+          </>
         )}
         
         {/* Inverter → Battery */}
@@ -291,12 +324,14 @@ export function AdvancedTopology({
           d="M 340 240 Q 280 270 240 290"
           fill="none"
           stroke={batteryCharging ? '#10b981' : '#f59e0b'}
-          strokeWidth={2 + (batteryPower / 500) * 2}
-          strokeDasharray="8 4"
-          opacity="0.8"
-          markerEnd="url(#arrowhead)"
+          strokeWidth={3 + (batteryPower / 500) * 2}
+          strokeDasharray="10 5"
+          opacity="0.9"
+          markerEnd="url(#arrowhead-battery)"
+          strokeLinecap="round"
+          filter="url(#glow)"
         >
-          <animate attributeName="stroke-dashoffset" from="0" to={batteryCharging ? "-24" : "24"} dur="1s" repeatCount="indefinite" />
+          <animate attributeName="stroke-dashoffset" from="0" to={batteryCharging ? "-30" : "30"} dur="1.5s" repeatCount="indefinite" />
         </path>
         
         {/* Inverter → Loads */}
@@ -304,15 +339,27 @@ export function AdvancedTopology({
           d="M 460 240 Q 520 270 560 290"
           fill="none"
           stroke={loadW > 0 ? '#ff4d1c' : '#e5e2db'}
-          strokeWidth={loadW > 0 ? 2 + (loadW / 500) * 2 : 1.5}
-          strokeDasharray={loadW > 0 ? '8 4' : '0'}
-          opacity={loadW > 0 ? 0.8 : 0.3}
-          markerEnd={loadW > 0 ? 'url(#arrowhead)' : ''}
+          strokeWidth={loadW > 0 ? 3 + (loadW / 500) * 2 : 1.5}
+          strokeDasharray={loadW > 0 ? '10 5' : '5 5'}
+          opacity={loadW > 0 ? 1 : 0.4}
+          markerEnd={loadW > 0 ? 'url(#arrowhead)' : 'url(#arrowhead)'}
+          strokeLinecap="round"
+          filter={loadW > 0 ? "url(#glow)" : ""}
         >
           {loadW > 0 && (
-            <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1s" repeatCount="indefinite" />
+            <animate attributeName="stroke-dashoffset" from="0" to="-30" dur="1.5s" repeatCount="indefinite" />
           )}
         </path>
+        
+        {/* Load label */}
+        {loadW > 0 && (
+          <g transform="translate(510, 260)">
+            <rect x="-30" y="-12" width="60" height="24" rx="6" fill="#ff4d1c" opacity="0.95" filter="url(#glow)" />
+            <text x="0" y="4" textAnchor="middle" fontSize="10" fill="white" fontFamily="var(--font-mono)" fontWeight="700">
+              LOADS →
+            </text>
+          </g>
+        )}
       </svg>
       
       {/* Legend */}
