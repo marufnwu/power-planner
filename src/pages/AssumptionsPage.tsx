@@ -1,5 +1,4 @@
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 
 const assumptions = [
   { param: 'Inverter efficiency curve', default: '10%: 0.80 · 25%: 0.88 · 50%: 0.91 · 75%: 0.90 · 100%: 0.88', note: 'Interpolated by load fraction', verified: false },
@@ -24,48 +23,41 @@ const assumptions = [
 
 export function AssumptionsPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-4">
-          <Link to="/" className="text-gray-600 hover:text-gray-900">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-          <h1 className="font-bold text-lg">All assumptions</h1>
-        </div>
-      </header>
+    <div className="pt-24 pb-16">
+      <div className="container-narrow">
+        <div className="eyebrow mb-3">Reference</div>
+        <h1 className="display-lg mb-4">All assumptions</h1>
+        <p className="text-base mb-10" style={{ color: 'var(--muted)', maxWidth: '52ch' }}>
+          Every number in this tool comes from one of these defaults. All are editable in the planner. Items marked "default, check" are not verified from datasheets.
+        </p>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <div className="flex items-start gap-2">
-            <Info className="w-5 h-5 text-blue-600 mt-0.5" />
-            <div className="text-sm text-blue-800">
-              <p className="font-semibold mb-1">Every number is editable</p>
-              <p>These are the defaults used when you start a new project. In the planner, you can override any of these values. Items marked "not verified" are editable defaults — please check your actual equipment datasheets.</p>
-            </div>
+        <div className="p-5 rounded-2xl mb-8 flex items-start gap-3" style={{ background: 'var(--paper-warm)', border: '1px solid var(--border)' }}>
+          <Info className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--info)' }} />
+          <div className="text-sm" style={{ color: 'var(--ink)' }}>
+            <p className="font-medium mb-1">Every number is editable</p>
+            <p style={{ color: 'var(--muted)' }}>These defaults are used when you start a new project. In the planner, you can override any value. Items marked "default, check" are editable placeholders — please verify with your actual equipment datasheets.</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-semibold">Parameter</th>
-                <th className="text-left py-3 px-4 font-semibold">Default</th>
-                <th className="text-left py-3 px-4 font-semibold hidden md:table-cell">Note</th>
-                <th className="text-center py-3 px-4 font-semibold">Status</th>
+              <tr style={{ background: 'var(--paper-warm)' }}>
+                <th className="text-left py-3 px-4 font-medium" style={{ color: 'var(--muted)' }}>Parameter</th>
+                <th className="text-left py-3 px-4 font-medium" style={{ color: 'var(--muted)' }}>Default</th>
+                <th className="text-center py-3 px-4 font-medium" style={{ color: 'var(--muted)' }}>Status</th>
               </tr>
             </thead>
             <tbody>
               {assumptions.map((a, i) => (
-                <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
                   <td className="py-3 px-4 font-medium">{a.param}</td>
-                  <td className="py-3 px-4 text-gray-600">{a.default}</td>
-                  <td className="py-3 px-4 text-gray-500 hidden md:table-cell">{a.note}</td>
+                  <td className="py-3 px-4 num" style={{ color: 'var(--muted)' }}>{a.default}</td>
                   <td className="py-3 px-4 text-center">
                     {a.verified ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">Verified</span>
+                      <span className="badge badge-success">Verified</span>
                     ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-700">Default, check</span>
+                      <span className="badge badge-warning">Default, check</span>
                     )}
                   </td>
                 </tr>
@@ -74,15 +66,15 @@ export function AssumptionsPage() {
           </table>
         </div>
 
-        <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h3 className="font-semibold text-yellow-800 mb-2">Items that must be verified by a human</h3>
-          <ul className="text-sm text-yellow-700 space-y-1 list-disc list-inside">
-            <li>Real datasheet values for inverters (SAKO E-SUN and others)</li>
-            <li>Cable ampacity table (from cited standard/local code)</li>
-            <li>Residential tariff slabs per region</li>
-            <li>Battery cycle-life tables per chemistry and manufacturer</li>
-            <li>Typical appliance wattages and surge multipliers</li>
-            <li>Peak sun hours by region/month</li>
+        <div className="mt-8 p-5 rounded-2xl" style={{ background: 'var(--warning-soft)', border: '1px solid #fde68a' }}>
+          <div className="eyebrow mb-2" style={{ color: 'var(--warning)' }}>Must be verified by a human</div>
+          <ul className="text-sm space-y-1" style={{ color: 'var(--ink)' }}>
+            <li>• Real datasheet values for inverters (SAKO E-SUN and others)</li>
+            <li>• Cable ampacity table (from cited standard/local code)</li>
+            <li>• Residential tariff slabs per region</li>
+            <li>• Battery cycle-life tables per chemistry and manufacturer</li>
+            <li>• Typical appliance wattages and surge multipliers</li>
+            <li>• Peak sun hours by region/month</li>
           </ul>
         </div>
       </div>

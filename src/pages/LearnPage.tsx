@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 interface Article {
   id: string;
   title: string;
   summary: string;
   content: string;
+  category: string;
 }
 
 const articles: Article[] = [
@@ -14,6 +15,7 @@ const articles: Article[] = [
     id: 'ips-vs-hybrid',
     title: 'IPS vs UPS vs Hybrid Inverter',
     summary: 'What are the differences and which one do you need?',
+    category: 'Basics',
     content: `**IPS (Inverter Power Supply):** A basic inverter that converts battery DC to AC during outages. It charges the battery from the grid when power is available. Simple, affordable, but doesn't reduce your electricity bill.
 
 **UPS (Uninterruptible Power Supply):** Provides instant switchover (milliseconds). Good for computers and sensitive electronics. Usually smaller capacity.
@@ -29,6 +31,7 @@ const articles: Article[] = [
     id: 'sizing-inverter',
     title: 'How to size an inverter',
     summary: 'The key numbers: running watts, surge watts, and VA.',
+    category: 'Sizing',
     content: `**Step 1: Calculate total running watts**
 Add up all appliances that will run simultaneously on backup:
 - 3 fans × 70W = 210W
@@ -57,6 +60,7 @@ Your inverter must handle this surge without tripping.
     id: 'va-vs-w',
     title: 'VA vs Watts — why both matter',
     summary: 'Apparent power (VA) vs real power (W) and power factor.',
+    category: 'Basics',
     content: `**Watts (W)** = real power that does actual work (heat, light, motion)
 
 **VA (Volt-Amps)** = apparent power = V × I (voltage × current)
@@ -75,6 +79,7 @@ Inverters are rated in VA because they must supply the current. A 1000VA inverte
     id: 'lifepo4-vs-tubular',
     title: 'LiFePO4 vs Tubular Lead-Acid',
     summary: 'The two most common battery types for home IPS in Bangladesh.',
+    category: 'Batteries',
     content: `**LiFePO4 (Lithium Iron Phosphate)**
 - ✅ Usable DoD: 80-90% (most of the capacity is usable)
 - ✅ Cycle life: 3000-5000+ cycles
@@ -103,6 +108,7 @@ Lithium is cheaper over the long term despite higher upfront cost.`,
     id: 'dod-explained',
     title: 'What is DoD and why does it matter?',
     summary: 'Depth of Discharge determines how much of your battery you can actually use.',
+    category: 'Batteries',
     content: `**DoD (Depth of Discharge)** = how much of the battery's capacity you use before recharging.
 
 If a 100Ah battery has 80% DoD, you can use 80Ah before recharging. The remaining 20Ah is "reserved" to protect the battery.
@@ -124,6 +130,7 @@ Despite the LiFePO4 being "smaller" in Ah, the usable energy is almost the same!
     id: 'fridge-surge',
     title: 'Why your fridge needs a bigger inverter',
     summary: 'Compressor startup surge can be 5× running power.',
+    category: 'Sizing',
     content: `A refrigerator's compressor motor needs a huge burst of current when it starts — typically 4-6 times its running wattage, for 1-3 seconds.
 
 **Example:**
@@ -144,6 +151,7 @@ If your inverter is rated 800VA (about 640W at PF 0.8), the fridge surge alone m
     id: 'battery-life',
     title: 'How long will my battery last?',
     summary: 'Cycle life, calendar life, and what affects them.',
+    category: 'Batteries',
     content: `Battery life depends on two things:
 1. **Cycle life** — how many charge/discharge cycles before capacity drops to 80%
 2. **Calendar life** — chemical aging even without use
@@ -173,6 +181,7 @@ LiFePO4 at same usage: 4000 ÷ 365 = ~11 years`,
     id: 'how-many-panels',
     title: 'How many solar panels do I need?',
     summary: 'Sizing solar for backup recharge vs bill savings.',
+    category: 'Solar',
     content: `**For backup recharge:**
 Calculate energy used per outage, then size panels to replace it between outages.
 
@@ -198,6 +207,7 @@ Wp needed = 2500 / (4.5 × 0.75) = 740 Wp → 2 × 400Wp panels
     id: 'common-mistakes',
     title: 'Common IPS mistakes to avoid',
     summary: 'Expensive errors we see again and again.',
+    category: 'Practical',
     content: `1. **Undersizing the inverter** — Not accounting for surge. Fridge or pump startup trips the inverter.
 
 2. **Mixing old and new batteries** — Old battery drags down the whole bank. Never mix ages, capacities, or chemistries.
@@ -218,6 +228,7 @@ Wp needed = 2500 / (4.5 × 0.75) = 740 Wp → 2 × 400Wp panels
     id: 'operating-modes',
     title: 'Operating modes explained (SBU, etc.)',
     summary: 'What do IPS, SOL, UTI, and SBU modes actually do?',
+    category: 'Basics',
     content: `**IPS (Inverter Priority / Offline):**
 - Grid powers loads and charges battery
 - On outage, inverter takes over from battery
@@ -251,70 +262,109 @@ Wp needed = 2500 / (4.5 × 0.75) = 740 Wp → 2 × 400Wp panels
 
 export function LearnPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<string>('All');
+  
+  const categories = ['All', ...Array.from(new Set(articles.map(a => a.category)))];
+  const filtered = filter === 'All' ? articles : articles.filter(a => a.category === filter);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-4">
-          <Link to="/" className="text-gray-600 hover:text-gray-900">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-          <div className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-purple-500" />
-            <h1 className="font-bold text-lg">Learning Hub</h1>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <p className="text-gray-600 mb-6">
-          Articles to help you understand IPS, solar, and battery systems. Click any article to expand.
+    <div className="pt-24 pb-16">
+      <div className="container-narrow">
+        <div className="eyebrow mb-3">Learning hub</div>
+        <h1 className="display-lg mb-4">Understand your system.</h1>
+        <p className="text-base mb-10" style={{ color: 'var(--muted)', maxWidth: '52ch' }}>
+          Articles on IPS, solar, and battery systems. Written to help you make informed decisions — not to sell you anything.
         </p>
 
-        <div className="space-y-3">
-          {articles.map(article => (
-            <div key={article.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <button
-                onClick={() => setExpandedId(expandedId === article.id ? null : article.id)}
-                className="w-full text-left p-4 flex items-start gap-3 hover:bg-gray-50"
-              >
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{article.title}</h3>
-                  <p className="text-sm text-gray-500 mt-0.5">{article.summary}</p>
-                </div>
-                {expandedId === article.id ? (
-                  <ChevronUp className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                )}
-              </button>
-              {expandedId === article.id && (
-                <div className="px-4 pb-4 border-t border-gray-100">
-                  <div className="prose prose-sm max-w-none mt-3 text-gray-700 whitespace-pre-line">
-                    {article.content.split('\n').map((line, i) => {
-                      if (line.startsWith('**') && line.endsWith('**')) {
-                        return <p key={i} className="font-bold mt-3 mb-1">{line.replace(/\*\*/g, '')}</p>;
-                      }
-                      if (line.startsWith('- ')) {
-                        return <p key={i} className="ml-4">• {line.slice(2)}</p>;
-                      }
-                      if (line.startsWith('|')) {
-                        return <p key={i} className="font-mono text-xs">{line}</p>;
-                      }
-                      if (line.trim() === '') return <br key={i} />;
-                      return <p key={i}>{line}</p>;
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
+        {/* Category filter */}
+        <div className="flex flex-wrap gap-2 mb-8">
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setFilter(cat)}
+              className="px-3 py-1.5 text-xs rounded-full transition-all"
+              style={{
+                background: filter === cat ? 'var(--ink)' : 'transparent',
+                color: filter === cat ? 'var(--paper)' : 'var(--muted)',
+                border: filter === cat ? '1px solid var(--ink)' : '1px solid var(--border)',
+              }}
+            >
+              {cat}
+            </button>
           ))}
         </div>
 
-        <div className="mt-8 bg-amber-50 border border-amber-200 rounded-lg p-4">
-          <p className="text-sm text-amber-800">
-            <strong>Want to try these concepts?</strong> Open the <Link to="/plan" className="underline font-medium">planner</Link> to experiment with different configurations and see how they affect runtime, recharge time, and costs.
+        {/* Articles */}
+        <div className="space-y-2">
+          {filtered.map(article => {
+            const expanded = expandedId === article.id;
+            return (
+              <div key={article.id} className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+                <button
+                  onClick={() => setExpandedId(expanded ? null : article.id)}
+                  className="w-full text-left p-5 flex items-start gap-4 transition-colors"
+                  style={{ background: expanded ? 'var(--paper-warm)' : 'var(--surface)' }}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="badge badge-outline">{article.category}</span>
+                    </div>
+                    <h3 className="text-lg font-medium tracking-tight mb-1">{article.title}</h3>
+                    <p className="text-sm" style={{ color: 'var(--muted)' }}>{article.summary}</p>
+                  </div>
+                  <ChevronDown
+                    className="w-5 h-5 flex-shrink-0 mt-1 transition-transform"
+                    style={{
+                      color: 'var(--muted)',
+                      transform: expanded ? 'rotate(180deg)' : 'rotate(0)',
+                    }}
+                  />
+                </button>
+                {expanded && (
+                  <div className="px-5 pb-5 pt-2 animate-fade-in" style={{ background: 'var(--paper-warm)', borderTop: '1px solid var(--border)' }}>
+                    <div className="text-sm leading-relaxed" style={{ color: 'var(--ink)' }}>
+                      {article.content.split('\n').map((line, i) => {
+                        if (line.startsWith('**') && line.endsWith('**')) {
+                          return <p key={i} className="font-semibold mt-4 mb-1">{line.replace(/\*\*/g, '')}</p>;
+                        }
+                        if (line.startsWith('- ')) {
+                          return <p key={i} className="ml-4 my-0.5">• {line.slice(2)}</p>;
+                        }
+                        if (line.match(/^\d+\. \*\*/)) {
+                          const match = line.match(/^(\d+)\. \*\*(.+?)\*\*(.*)$/);
+                          if (match) {
+                            return (
+                              <p key={i} className="ml-4 my-1">
+                                <span className="num" style={{ color: 'var(--muted)' }}>{match[1]}.</span>{' '}
+                                <strong>{match[2]}</strong>{match[3]}
+                              </p>
+                            );
+                          }
+                        }
+                        if (line.startsWith('|')) {
+                          return <p key={i} className="font-mono text-xs my-0.5" style={{ color: 'var(--muted)' }}>{line}</p>;
+                        }
+                        if (line.trim() === '') return <div key={i} className="h-2" />;
+                        return <p key={i} className="my-1">{line}</p>;
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-12 p-6 rounded-2xl" style={{ background: 'var(--ink)', color: 'var(--paper)' }}>
+          <div className="display-md mb-3">
+            Want to try these concepts?
+          </div>
+          <p className="text-sm mb-5 opacity-70">
+            Open the planner to experiment with different configurations and see how they affect runtime, recharge time, and costs.
           </p>
+          <Link to="/plan" className="btn-primary" style={{ background: 'var(--paper)', color: 'var(--ink)', borderColor: 'var(--paper)' }}>
+            Open planner →
+          </Link>
         </div>
       </div>
     </div>
