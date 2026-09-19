@@ -14,7 +14,7 @@ import { AdvancedSettings, CalculationSettings, defaultSettings } from '../compo
 import { BatteryCustomizer } from '../components/BatteryCustomizer';
 import { useI18n } from '../lib/i18n';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, ReferenceLine } from 'recharts';
-import { Share2, Printer, ChevronDown, ChevronUp, Info, AlertTriangle, Check, Zap, Sun, Moon, Battery as BatteryIcon, Settings2, Plug, RefreshCw, X, Plus, ArrowRight } from 'lucide-react';
+import { Share2, Printer, ChevronDown, ChevronUp, Info, AlertTriangle, Check, Zap, Sun, Moon, Battery as BatteryIcon, Settings2, Plug, RefreshCw, X, Plus, ArrowRight, Trash2 } from 'lucide-react';
 
 type PlannerStep = 'loads' | 'grid' | 'system' | 'results' | 'costs';
 
@@ -253,6 +253,7 @@ function LoadsStep({ project, updateLoad, addLoad, removeLoad }: {
   addLoad: (templateId: string) => void;
   removeLoad: (id: string) => void;
 }) {
+  const { t } = useI18n();
   const totalW = project.loads.filter(l => l.onBackupCircuit).reduce((s, l) => s + l.qty * l.watts * l.dutyCycle, 0);
   const totalVA = project.loads.filter(l => l.onBackupCircuit).reduce((s, l) => s + (l.qty * l.watts * l.dutyCycle) / l.powerFactor, 0);
 
@@ -260,14 +261,14 @@ function LoadsStep({ project, updateLoad, addLoad, removeLoad }: {
     <div className="space-y-6">
       <div>
         <div className="flex items-baseline justify-between mb-2">
-          <h2 className="text-xl font-medium tracking-tight">Your loads</h2>
+          <h2 className="text-xl font-medium tracking-tight">{t('load.yourLoads')}</h2>
           <div className="flex items-baseline gap-4 num text-sm" style={{ color: 'var(--muted)' }}>
-            <span><span style={{ color: 'var(--ink)' }} className="font-medium">{totalW.toFixed(0)}</span> W</span>
+            <span><span style={{ color: 'var(--ink)' }} className="font-medium">{totalW.toFixed(0)}</span> {t('unit.watts')}</span>
             <span><span style={{ color: 'var(--ink)' }} className="font-medium">{totalVA.toFixed(0)}</span> VA</span>
           </div>
         </div>
         <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
-          Add appliances that need backup. All values are editable defaults — check your actual equipment.
+          {t('load.addLoadsBackup')}
         </p>
       </div>
 
@@ -284,7 +285,7 @@ function LoadsStep({ project, updateLoad, addLoad, removeLoad }: {
           <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs transition-transform group-open:rotate-45" style={{ background: 'var(--ink)', color: 'var(--paper)' }}>
             <Plus className="w-3 h-3" />
           </span>
-          Add an appliance
+          {t('load.addAppliance')}
         </summary>
         <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
           {applianceTemplates.map(tmpl => (
@@ -306,96 +307,159 @@ function LoadsStep({ project, updateLoad, addLoad, removeLoad }: {
 
       <div className="flex items-start gap-2 p-3 rounded-xl text-xs" style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}>
         <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
-        <span>All equipment specs shown are editable defaults, not verified from datasheets. Check your actual equipment and update values accordingly.</span>
+        <span>{t('load.editableDefaults')}</span>
       </div>
     </div>
   );
 }
 
 function LoadRow({ load, onUpdate, onRemove }: { load: LoadItem; onUpdate: (u: Partial<LoadItem>) => void; onRemove: () => void }) {
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
   
   return (
-    <div className="rounded-xl border transition-colors hover:border-[var(--border-strong)]" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-      <div className="group flex flex-wrap items-center gap-3 p-3">
-        <input
-          value={load.label}
-          onChange={e => onUpdate({ label: e.target.value })}
-          className="flex-1 text-sm font-medium bg-transparent outline-none min-w-[100px]"
-          style={{ color: 'var(--ink)' }}
-        />
-        <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1">
-          <span className="text-xs" style={{ color: 'var(--muted)' }}>qty</span>
-          <input
-            type="number" min={1} max={20} value={load.qty}
-            onChange={e => onUpdate({ qty: Math.max(1, +e.target.value) })}
-            className="input input-mono w-12 text-center py-1 text-sm"
-          />
-        </div>          <div className="flex items-center gap-1">
+    <div className="rounded-xl border transition-all hover:shadow-md" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+      {/* Main row - always visible */}
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex-1 min-w-0">
+            <input
+              value={load.label}
+              onChange={e => onUpdate({ label: e.target.value })}
+              className="w-full text-base font-semibold bg-transparent outline-none border-b border-transparent hover:border-[var(--border)] focus:border-[var(--accent)] transition-colors"
+              style={{ color: 'var(--ink)' }}
+              placeholder="Load name"
+            />
+            {load.templateId && (
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ 
+                  background: load.onBackupCircuit ? 'var(--success-soft)' : 'var(--muted)',
+                  color: load.onBackupCircuit ? 'var(--success)' : 'var(--paper)'
+                }}>
+                  {load.onBackupCircuit ? 'Backup' : 'Grid Only'}
+                </span>
+                <span className="text-xs" style={{ color: 'var(--muted)' }}>
+                  {load.usageProfile === 'day' ? '☀️ Day' : load.usageProfile === 'night' ? '🌙 Night' : load.usageProfile === 'both' ? '☀️🌙 Both' : '◌ Occasional'}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="p-2 rounded-lg hover:bg-[var(--paper-warm)] transition-colors"
+              aria-label="Toggle details"
+            >
+              {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={onRemove}
+              className="p-2 rounded-lg hover:bg-red-50 text-[var(--muted)] hover:text-red-600 transition-colors"
+              aria-label="Remove load"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Quick stats */}
+        <div className="grid grid-cols-3 gap-3 mt-3">
+          <div className="text-center p-2 rounded-lg" style={{ background: 'var(--paper-warm)' }}>
+            <div className="text-xs mb-1" style={{ color: 'var(--muted)' }}>{t('load.quantity')}</div>
+            <input
+              type="number" min={1} max={20} value={load.qty}
+              onChange={e => onUpdate({ qty: Math.max(1, +e.target.value) })}
+              className="w-full text-center text-lg font-bold bg-transparent outline-none num"
+              style={{ color: 'var(--ink)' }}
+            />
+          </div>
+          <div className="text-center p-2 rounded-lg" style={{ background: 'var(--paper-warm)' }}>
+            <div className="text-xs mb-1" style={{ color: 'var(--muted)' }}>{t('load.watts')}</div>
             <input
               type="number" min={1} value={load.watts}
               onChange={e => onUpdate({ watts: Math.max(1, +e.target.value) })}
-              className="input input-mono w-16 text-center py-1 text-sm"
+              className="w-full text-center text-lg font-bold bg-transparent outline-none num"
+              style={{ color: 'var(--ink)' }}
             />
-            <span className="text-xs num" style={{ color: 'var(--muted)' }}>W</span>
+          </div>
+          <div className="text-center p-2 rounded-lg" style={{ background: 'var(--paper-warm)' }}>
+            <div className="text-xs mb-1" style={{ color: 'var(--muted)' }}>{t('load.total')}</div>
+            <div className="text-lg font-bold num" style={{ color: 'var(--accent)' }}>
+              {(load.qty * load.watts).toFixed(0)}{t('unit.watts')}
+            </div>
           </div>
         </div>
-        {/* Quick usage profile selector */}
-        <select
-          value={load.usageProfile}
-          onChange={e => {
-            const newProfile = e.target.value as any;
-            const tmpl = load.templateId ? applianceTemplates.find(t => t.id === load.templateId) : undefined;
-            onUpdate({
-              usageProfile: newProfile,
-              hourly: generateHourlyProfile(newProfile, tmpl?.category),
-            });
-          }}
-          className="input text-xs py-1 px-2 w-auto"
-          title="Quick preset - click 'Customize' below for full control"
-        >
-          <option value="both">☀🌙 All day</option>
-          <option value="day">☀ Daytime</option>
-          <option value="night">🌙 Nighttime</option>
-          <option value="occasional">◌ Occasional</option>
-        </select>
-        <label className="flex items-center gap-1.5 cursor-pointer text-xs">
-          <input
-            type="checkbox" checked={load.onBackupCircuit}
-            onChange={e => onUpdate({ onBackupCircuit: e.target.checked })}
-          />
-          <span style={{ color: 'var(--muted)' }}>Backup</span>
-        </label>
-        <button 
-          onClick={() => setExpanded(!expanded)}
-          className="text-xs px-2 py-1 rounded-lg transition-colors flex items-center gap-1"
-          style={{ 
-            background: expanded ? 'var(--ink)' : 'transparent',
-            color: expanded ? 'var(--paper)' : 'var(--muted)',
-            border: `1px solid ${expanded ? 'var(--ink)' : 'var(--border)'}`
-          }}
-        >
-          {expanded ? (
-            <>
-              <Check className="w-3 h-3" />
-              <span>Done</span>
-            </>
-          ) : (
-            <>
-              <Settings2 className="w-3 h-3" />
-              <span>Customize</span>
-            </>
-          )}
-        </button>
-        <button onClick={onRemove} className="opacity-0 group-hover:opacity-100 transition-opacity p-1" style={{ color: 'var(--muted)' }}>
-          <X className="w-4 h-4" />
-        </button>
       </div>
-      
-      {/* Expanded hourly editor */}
+
+      {/* Expanded details */}
       {expanded && (
-        <div className="px-3 pb-3 pt-1" style={{ borderTop: '1px solid var(--border)' }}>
+        <div className="border-t px-4 pb-4 pt-3 space-y-4" style={{ borderColor: 'var(--border)' }}>
+          {/* Usage pattern */}
+          <div>
+            <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--muted)' }}>
+              {t('load.usagePattern')}
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {(['day', 'night', 'both', 'occasional'] as const).map(profile => (
+                <button
+                  key={profile}
+                  onClick={() => onUpdate({ usageProfile: profile })}
+                  className="px-3 py-2 rounded-lg text-xs font-medium transition-all"
+                  style={{
+                    background: load.usageProfile === profile ? 'var(--ink)' : 'var(--paper-warm)',
+                    color: load.usageProfile === profile ? 'var(--paper)' : 'var(--ink)',
+                  }}
+                >
+                  {profile === 'day' && `☀️ ${t('load.day')}`}
+                  {profile === 'night' && `🌙 ${t('load.night')}`}
+                  {profile === 'both' && `☀️🌙 ${t('load.both')}`}
+                  {profile === 'occasional' && `◌ ${t('load.occasional')}`}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Advanced settings */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>
+                {t('load.powerFactor')}
+              </label>
+              <input
+                type="number" min={0.1} max={1} step={0.01} value={load.powerFactor}
+                onChange={e => onUpdate({ powerFactor: +e.target.value })}
+                className="input input-mono text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>
+                {t('load.dutyCycle')}
+              </label>
+              <input
+                type="number" min={0} max={1} step={0.01} value={load.dutyCycle}
+                onChange={e => onUpdate({ dutyCycle: +e.target.value })}
+                className="input input-mono text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Backup circuit toggle */}
+          <label className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-[var(--paper-warm)] transition-colors" style={{ border: '1px solid var(--border)' }}>
+            <input
+              type="checkbox"
+              checked={load.onBackupCircuit}
+              onChange={e => onUpdate({ onBackupCircuit: e.target.checked })}
+              className="w-5 h-5 rounded"
+            />
+            <div className="flex-1">
+              <div className="text-sm font-medium">{t('load.backupCircuit')}</div>
+              <div className="text-xs" style={{ color: 'var(--muted)' }}>
+                {load.onBackupCircuit ? t('load.poweredDuringOutages') : t('load.gridPowerOnly')}
+              </div>
+            </div>
+          </label>
+
+          {/* Hourly editor */}
           <HourlyUsageEditor
             hourly={load.hourly}
             usageProfile={load.usageProfile}

@@ -598,11 +598,275 @@ input[type="checkbox"] {
 }
 
 /* ============================================================
-   RESPONSIVE
+   RESPONSIVE - MOBILE FIXES
    ============================================================ */
 
+/* Tablet and below */
+@media (max-width: 1024px) {
+  .container-ultra {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .container-wide {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Mobile */
 @media (max-width: 768px) {
-  .display-xl { font-size: 3.5rem; }
-  .display-lg { font-size: 2.25rem; }
-  .display-md { font-size: 1.5rem; }
+  /* Typography scaling */
+  .display-xl { 
+    font-size: 2.5rem; 
+    line-height: 1.1;
+  }
+  .display-lg { 
+    font-size: 1.875rem; 
+    line-height: 1.15;
+  }
+  .display-md { 
+    font-size: 1.5rem; 
+    line-height: 1.2;
+  }
+  
+  /* Container padding */
+  .container-ultra,
+  .container-wide,
+  .container-narrow {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Navigation */
+  nav {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+  
+  /* Buttons */
+  .btn-primary,
+  .btn-secondary {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* Cards and sections */
+  .card,
+  section {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  
+  /* Grid layouts */
+  .grid-cols-2,
+  .grid-cols-3,
+  .grid-cols-4 {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Tables */
+  table {
+    font-size: 0.875rem;
+  }
+  
+  th, td {
+    padding: 0.5rem;
+  }
+  
+  /* Forms */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="tel"],
+  select,
+  textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 0.75rem;
+  }
+  
+  /* Load list mobile optimization */
+  .load-item {
+    padding: 1rem;
+  }
+  
+  .load-stats {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  /* Topology diagram */
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  /* Sticky elements */
+  .sticky {
+    position: relative;
+  }
+  
+  /* Spacing adjustments */
+  .space-y-6 > * + * {
+    margin-top: 1.5rem;
+  }
+  
+  .space-y-8 > * + * {
+    margin-top: 2rem;
+  }
+  
+  .gap-8 {
+    gap: 1.5rem;
+  }
+  
+  /* Hide non-essential elements on mobile */
+  .hidden-mobile {
+    display: none;
+  }
+  
+  /* Full-width modals */
+  .modal-content {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+  
+  /* Touch-friendly targets */
+  button,
+  a,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* Fix for iOS input zoom */
+  @supports (-webkit-overflow-scrolling: touch) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+  .display-xl { 
+    font-size: 2rem; 
+  }
+  .display-lg { 
+    font-size: 1.5rem; 
+  }
+  .display-md { 
+    font-size: 1.25rem; 
+  }
+  
+  /* Even more compact spacing */
+  .container-ultra,
+  .container-wide,
+  .container-narrow {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  /* Smaller buttons */
+  .btn-primary,
+  .btn-secondary {
+    padding: 0.625rem 1rem;
+    font-size: 0.8125rem;
+  }
+  
+  /* Compact cards */
+  .card {
+    padding: 1rem;
+  }
+  
+  /* Single column everything */
+  .grid-cols-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Landscape mobile */
+@media (max-width: 896px) and (orientation: landscape) {
+  .display-xl { 
+    font-size: 2.5rem; 
+  }
+  
+  /* Reduce vertical spacing in landscape */
+  .space-y-8 > * + * {
+    margin-top: 1.5rem;
+  }
+  
+  /* Adjust topology for landscape */
+  svg {
+    max-height: 50vh;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets */
+  button,
+  a,
+  [role="button"],
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Remove hover effects on touch devices */
+  .hover\:scale-\[1\.02\]:hover {
+    transform: none;
+  }
+  
+  /* Better tap highlighting */
+  * {
+    -webkit-tap-highlight-color: rgba(255, 77, 28, 0.2);
+  }
+  
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Crisper borders */
+  .border {
+    border-width: 0.5px;
+  }
+}
+
+/* Dark mode support (future) */
+@media (prefers-color-scheme: dark) {
+  /* Can be enabled later if needed */
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
