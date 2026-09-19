@@ -6,18 +6,20 @@ import { runSimulation, calculateContinuousRuntime, calculateSizing, calculateCo
 import { applianceTemplates, batteryCatalog, defaultPvPanel } from '../data/catalogs';
 import { generateHourlyProfile, getUsageLabel, getUsageDescription, getScenarioLoad } from '../lib/usageProfiles';
 import { ResultHero } from '../components/ResultHero';
-import { SystemTopology } from '../components/SystemTopology';
+import { AdvancedTopology } from '../components/AdvancedTopology';
 import { BatteryVisual } from '../components/BatteryVisual';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 import { HourlyUsageEditor } from '../components/HourlyUsageEditor';
 import { AdvancedSettings, CalculationSettings, defaultSettings } from '../components/AdvancedSettings';
 import { BatteryCustomizer } from '../components/BatteryCustomizer';
+import { useI18n } from '../lib/i18n';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, ReferenceLine } from 'recharts';
 import { Share2, Printer, ChevronDown, ChevronUp, Info, AlertTriangle, Check, Zap, Sun, Moon, Battery as BatteryIcon, Settings2, Plug, RefreshCw, X, Plus, ArrowRight } from 'lucide-react';
 
 type PlannerStep = 'loads' | 'grid' | 'system' | 'results' | 'costs';
 
 export function PlannerPage() {
+  const { t } = useI18n();
   const [searchParams] = useSearchParams();
   const [project, setProject] = useState<Project>(() => {
     const encoded = searchParams.get('s');
@@ -103,8 +105,8 @@ export function PlannerPage() {
         {/* Top bar */}
         <div className="flex items-center justify-between mb-8 pt-4">
           <div>
-            <div className="eyebrow mb-1">Planner</div>
-            <h1 className="text-2xl font-medium tracking-tight">Size your system</h1>
+            <div className="eyebrow mb-1">{t('planner.title')}</div>
+            <h1 className="text-2xl font-medium tracking-tight">{t('planner.title')}</h1>
           </div>
           <div className="flex items-center gap-2">
             <Link to="/compare" className="btn-ghost" title="Compare configurations">
@@ -136,7 +138,7 @@ export function PlannerPage() {
               }}
             >
               <span className="num mr-2 opacity-50">{String(i + 1).padStart(2, '0')}</span>
-              {s === 'loads' ? 'Loads' : s === 'grid' ? 'Grid' : s === 'system' ? 'System' : s === 'results' ? 'Results' : 'Costs'}
+              {s === 'loads' ? t('planner.loads') : s === 'grid' ? t('planner.grid') : s === 'system' ? t('planner.system') : s === 'results' ? t('planner.results') : t('planner.costs')}
             </button>
           ))}
         </div>
@@ -204,7 +206,7 @@ export function PlannerPage() {
                     Live
                   </div>
                 </div>
-                <SystemTopology
+                <AdvancedTopology
                   gridAvailable={result.timeSeries.length > 0 ? result.timeSeries[result.timeSeries.length - 1].gridAvailable : true}
                   solarW={solarW}
                   batterySoC={batterySoC}
@@ -214,6 +216,9 @@ export function PlannerPage() {
                   hasSolar={!!project.pv}
                   batteryAh={project.bank.unit.ratedAh * project.bank.parallel}
                   inverterVA={project.inverter.ratedVA}
+                  inverterEfficiency={90}
+                  batteryVoltage={project.bank.unit.nominalV * project.bank.series}
+                  gridPower={result.gridWh / (project.options.simulationDays * 24)}
                 />
               </div>
 

@@ -244,25 +244,35 @@ export function useI18n() {
 export function LocaleToggle() {
   const { locale, setLocale } = useI18n();
   
+  const handleLanguageChange = (newLocale: 'en' | 'bn') => {
+    setLocale(newLocale);
+    // Force re-render by updating document language
+    document.documentElement.lang = newLocale;
+    // Store preference
+    localStorage.setItem('preferred-language', newLocale);
+  };
+  
   return (
     <div className="flex items-center gap-1 text-xs rounded-full p-0.5" style={{ border: '1px solid var(--border)' }}>
       <button
-        onClick={() => setLocale('en')}
-        className="px-2 py-1 rounded-full transition-all"
+        onClick={() => handleLanguageChange('en')}
+        className="px-2 py-1 rounded-full transition-all font-medium"
         style={{
           background: locale === 'en' ? 'var(--ink)' : 'transparent',
           color: locale === 'en' ? 'var(--paper)' : 'var(--muted)',
         }}
+        aria-label="Switch to English"
       >
         EN
       </button>
       <button
-        onClick={() => setLocale('bn')}
-        className="px-2 py-1 rounded-full transition-all"
+        onClick={() => handleLanguageChange('bn')}
+        className="px-2 py-1 rounded-full transition-all font-medium"
         style={{
           background: locale === 'bn' ? 'var(--ink)' : 'transparent',
           color: locale === 'bn' ? 'var(--paper)' : 'var(--muted)',
         }}
+        aria-label="বাংলায় পরিবর্তন করুন"
       >
         বাং
       </button>
