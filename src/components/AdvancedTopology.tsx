@@ -327,7 +327,6 @@ export function AdvancedTopology({
           strokeWidth={3 + (batteryPower / 500) * 2}
           strokeDasharray="10 5"
           opacity="0.9"
-          markerEnd="url(#arrowhead-battery)"
           strokeLinecap="round"
           filter="url(#glow)"
         >
@@ -342,7 +341,6 @@ export function AdvancedTopology({
           strokeWidth={loadW > 0 ? 3 + (loadW / 500) * 2 : 1.5}
           strokeDasharray={loadW > 0 ? '10 5' : '5 5'}
           opacity={loadW > 0 ? 1 : 0.4}
-          markerEnd={loadW > 0 ? 'url(#arrowhead)' : 'url(#arrowhead)'}
           strokeLinecap="round"
           filter={loadW > 0 ? "url(#glow)" : ""}
         >
@@ -350,16 +348,6 @@ export function AdvancedTopology({
             <animate attributeName="stroke-dashoffset" from="0" to="-30" dur="1.5s" repeatCount="indefinite" />
           )}
         </path>
-        
-        {/* Load label */}
-        {loadW > 0 && (
-          <g transform="translate(510, 260)">
-            <rect x="-30" y="-12" width="60" height="24" rx="6" fill="#ff4d1c" opacity="0.95" filter="url(#glow)" />
-            <text x="0" y="4" textAnchor="middle" fontSize="10" fill="white" fontFamily="var(--font-mono)" fontWeight="700">
-              LOADS →
-            </text>
-          </g>
-        )}
       </svg>
       
       {/* Legend */}
