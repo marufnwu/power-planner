@@ -1,5 +1,6 @@
 import { UsageProfile } from '../types';
 import { generateHourlyProfile, getUsageLabel } from '../lib/usageProfiles';
+import { Sun, Moon, Sunrise, Circle } from 'lucide-react';
 
 interface HourlyUsageEditorProps {
   hourly: number[];
@@ -47,20 +48,54 @@ export function HourlyUsageEditor({ hourly, usageProfile, onChange, label }: Hou
       
       {/* Preset buttons */}
       <div className="flex gap-1">
-        {(['both', 'day', 'night', 'occasional'] as UsageProfile[]).map(profile => (
-          <button
-            key={profile}
-            onClick={() => handlePresetChange(profile)}
-            className="flex-1 px-2 py-1.5 text-xs rounded-lg transition-all"
-            style={{
-              background: usageProfile === profile && !isCustom ? 'var(--ink)' : 'var(--surface)',
-              color: usageProfile === profile && !isCustom ? 'var(--paper)' : 'var(--ink)',
-              border: `1px solid ${usageProfile === profile && !isCustom ? 'var(--ink)' : 'var(--border)'}`,
-            }}
-          >
-            {getUsageLabel(profile)}
-          </button>
-        ))}
+        <button
+          onClick={() => handlePresetChange('both')}
+          className="flex-1 px-2 py-1.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1"
+          style={{
+            background: usageProfile === 'both' && !isCustom ? 'var(--ink)' : 'var(--surface)',
+            color: usageProfile === 'both' && !isCustom ? 'var(--paper)' : 'var(--ink)',
+            border: `1px solid ${usageProfile === 'both' && !isCustom ? 'var(--ink)' : 'var(--border)'}`,
+          }}
+        >
+          <Sunrise className="w-3 h-3" />
+          <span>All day</span>
+        </button>
+        <button
+          onClick={() => handlePresetChange('day')}
+          className="flex-1 px-2 py-1.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1"
+          style={{
+            background: usageProfile === 'day' && !isCustom ? 'var(--ink)' : 'var(--surface)',
+            color: usageProfile === 'day' && !isCustom ? 'var(--paper)' : 'var(--ink)',
+            border: `1px solid ${usageProfile === 'day' && !isCustom ? 'var(--ink)' : 'var(--border)'}`,
+          }}
+        >
+          <Sun className="w-3 h-3" />
+          <span>Day</span>
+        </button>
+        <button
+          onClick={() => handlePresetChange('night')}
+          className="flex-1 px-2 py-1.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1"
+          style={{
+            background: usageProfile === 'night' && !isCustom ? 'var(--ink)' : 'var(--surface)',
+            color: usageProfile === 'night' && !isCustom ? 'var(--paper)' : 'var(--ink)',
+            border: `1px solid ${usageProfile === 'night' && !isCustom ? 'var(--ink)' : 'var(--border)'}`,
+          }}
+        >
+          <Moon className="w-3 h-3" />
+          <span>Night</span>
+        </button>
+        <button
+          onClick={() => handlePresetChange('occasional')}
+          className="flex-1 px-2 py-1.5 text-xs rounded-lg transition-all flex items-center justify-center gap-1"
+          style={{
+            background: usageProfile === 'occasional' && !isCustom ? 'var(--ink)' : 'var(--surface)',
+            color: usageProfile === 'occasional' && !isCustom ? 'var(--paper)' : 'var(--ink)',
+            border: `1px solid ${usageProfile === 'occasional' && !isCustom ? 'var(--ink)' : 'var(--border)'}`,
+          }}
+        >
+          <Circle className="w-3 h-3" />
+          <span>Occasional</span>
+        </button>
       </div>
       
       {/* 24-hour timeline */}

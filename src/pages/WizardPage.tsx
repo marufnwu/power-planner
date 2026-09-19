@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { createDefaultProject, encodeProject } from '../lib/state';
 import { applianceTemplates } from '../data/catalogs';
 import { generateHourlyProfile } from '../lib/usageProfiles';
+import { Circle, CircleDot, Check, AlertTriangle } from 'lucide-react';
 import { ChevronRight } from 'lucide-react';
 
 type WizardStep = 'shedding' | 'loads' | 'goal' | 'solar' | 'roof' | 'result';
@@ -214,7 +215,9 @@ export function WizardPage() {
                       border: answers.goal === 'basic' ? '1px solid var(--ink)' : '1px solid var(--border)',
                     }}
                   >
-                    <div className="text-3xl mb-2">◐</div>
+                    <div className="mb-2">
+                      <Circle className="w-8 h-8" />
+                    </div>
                     <div className="font-medium">Basic comfort</div>
                     <div className="text-xs mt-1 opacity-60">Fans, lights, router</div>
                   </button>
@@ -227,7 +230,9 @@ export function WizardPage() {
                       border: answers.goal === 'most' ? '1px solid var(--ink)' : '1px solid var(--border)',
                     }}
                   >
-                    <div className="text-3xl mb-2">◉</div>
+                    <div className="mb-2">
+                      <CircleDot className="w-8 h-8" />
+                    </div>
                     <div className="font-medium">Most of the home</div>
                     <div className="text-xs mt-1 opacity-60">TV, fridge, multiple rooms</div>
                   </button>
@@ -411,7 +416,7 @@ function ResultStep({ answers, onContinue }: { answers: WizardAnswers; onContinu
           <ul className="space-y-2">
             {reasons.map((r, i) => (
               <li key={i} className="flex items-start gap-2 text-sm">
-                <span style={{ color: 'var(--success)' }}>✓</span>
+                <Check className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--success)' }} />
                 <span>{r}</span>
               </li>
             ))}
@@ -424,7 +429,7 @@ function ResultStep({ answers, onContinue }: { answers: WizardAnswers; onContinu
             <ul className="space-y-2">
               {cautions.map((c, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
-                  <span style={{ color: 'var(--warning)' }}>!</span>
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--warning)' }} />
                   <span>{c}</span>
                 </li>
               ))}

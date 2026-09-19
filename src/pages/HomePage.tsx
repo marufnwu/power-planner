@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
+import { Circle, CircleDot, ArrowRight, Check } from 'lucide-react';
 
 export function HomePage() {
   return (
@@ -38,7 +39,7 @@ export function HomePage() {
               <div className="flex flex-wrap gap-3 animate-fade-up stagger-3">
                 <Link to="/choose" className="btn-primary">
                   Help me choose
-                  <span>→</span>
+                  <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link to="/plan" className="btn-secondary">
                   Open planner
@@ -190,7 +191,9 @@ function HeroPreview() {
       <div className="divider mb-4" />
       <div className="flex items-center justify-between text-xs" style={{ color: 'var(--muted)' }}>
         <span>Recovers between outages</span>
-        <span className="badge badge-success">✓</span>
+        <span className="badge badge-success">
+          <Check className="w-3 h-3" />
+        </span>
       </div>
     </div>
   );
@@ -221,12 +224,10 @@ function EntryPath({ num, title, body, link, cta, accent }: {
         <div className="num text-sm" style={{ color: accent ? 'var(--accent)' : 'var(--muted)', fontFamily: 'var(--font-mono)' }}>
           {num}
         </div>
-        <span
-          className="text-xl transition-transform group-hover:translate-x-1"
+        <ArrowRight
+          className="w-5 h-5 transition-transform group-hover:translate-x-1"
           style={{ color: accent ? 'var(--accent)' : 'var(--ink)' }}
-        >
-          →
-        </span>
+        />
       </div>
       <h3 className="display-md mb-3 tracking-tight">{title}</h3>
       <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--muted)', maxWidth: '40ch' }}>

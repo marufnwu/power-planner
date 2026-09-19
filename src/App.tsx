@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { I18nProvider, LocaleToggle } from './lib/i18n';
+import { Zap } from 'lucide-react';
 
 const HomePage = lazy(() => import('./pages/HomePage').then(m => ({ default: m.HomePage })));
 const WizardPage = lazy(() => import('./pages/WizardPage').then(m => ({ default: m.WizardPage })));
@@ -39,7 +40,7 @@ function Layout() {
         <nav className="container-ultra flex items-center justify-between py-4">
           <Link to="/" className="flex items-center gap-2 group">
             <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'var(--ink)' }}>
-              <span className="text-xs font-bold" style={{ color: 'var(--paper)', fontFamily: 'var(--font-mono)' }}>⚡</span>
+              <Zap className="w-3.5 h-3.5" style={{ color: 'var(--paper)' }} />
             </div>
             <span className="font-medium text-sm tracking-tight">Power Planner</span>
           </Link>

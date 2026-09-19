@@ -11,7 +11,7 @@ import { BatteryVisual } from '../components/BatteryVisual';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 import { HourlyUsageEditor } from '../components/HourlyUsageEditor';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, ReferenceLine } from 'recharts';
-import { Share2, Printer, ChevronDown, ChevronUp, Info, AlertTriangle, Check, Zap, Sun, Battery as BatteryIcon, Settings2 } from 'lucide-react';
+import { Share2, Printer, ChevronDown, ChevronUp, Info, AlertTriangle, Check, Zap, Sun, Moon, Battery as BatteryIcon, Settings2, Plug, RefreshCw, X, Plus, ArrowRight } from 'lucide-react';
 
 type PlannerStep = 'loads' | 'grid' | 'system' | 'results' | 'costs';
 
@@ -166,12 +166,11 @@ export function PlannerPage() {
                   ← Back
                 </button>
               ) : <div />}
-              {currentIdx < steps.length - 1 && (
-                <button onClick={() => setStep(steps[currentIdx + 1])} className="btn-primary">
-                  Continue →
-                </button>
-              )}
-            </div>
+            {currentIdx < steps.length - 1 && (
+              <button onClick={() => setStep(steps[currentIdx + 1])} className="btn-primary">
+                Continue <ArrowRight className="w-4 h-4" />
+              </button>
+            )}            </div>
           </div>
 
           {/* Right column — live results (sticky on desktop) */}
@@ -263,7 +262,9 @@ function LoadsStep({ project, updateLoad, addLoad, removeLoad }: {
       {/* Add load */}
       <details className="group">
         <summary className="cursor-pointer text-sm font-medium flex items-center gap-2 py-3" style={{ color: 'var(--ink)' }}>
-          <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs transition-transform group-open:rotate-45" style={{ background: 'var(--ink)', color: 'var(--paper)' }}>+</span>
+          <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs transition-transform group-open:rotate-45" style={{ background: 'var(--ink)', color: 'var(--paper)' }}>
+            <Plus className="w-3 h-3" />
+          </span>
           Add an appliance
         </summary>
         <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -305,15 +306,14 @@ function LoadRow({ load, onUpdate, onRemove }: { load: LoadItem; onUpdate: (u: P
           style={{ color: 'var(--ink)' }}
         />
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <span className="text-xs num" style={{ color: 'var(--muted)' }}>×</span>
-            <input
-              type="number" min={1} max={20} value={load.qty}
-              onChange={e => onUpdate({ qty: Math.max(1, +e.target.value) })}
-              className="input input-mono w-12 text-center py-1 text-sm"
-            />
-          </div>
-          <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1">
+          <span className="text-xs" style={{ color: 'var(--muted)' }}>qty</span>
+          <input
+            type="number" min={1} max={20} value={load.qty}
+            onChange={e => onUpdate({ qty: Math.max(1, +e.target.value) })}
+            className="input input-mono w-12 text-center py-1 text-sm"
+          />
+        </div>          <div className="flex items-center gap-1">
             <input
               type="number" min={1} value={load.watts}
               onChange={e => onUpdate({ watts: Math.max(1, +e.target.value) })}
@@ -350,16 +350,28 @@ function LoadRow({ load, onUpdate, onRemove }: { load: LoadItem; onUpdate: (u: P
         </label>
         <button 
           onClick={() => setExpanded(!expanded)}
-          className="text-xs px-2 py-1 rounded-lg transition-colors"
+          className="text-xs px-2 py-1 rounded-lg transition-colors flex items-center gap-1"
           style={{ 
             background: expanded ? 'var(--ink)' : 'transparent',
             color: expanded ? 'var(--paper)' : 'var(--muted)',
             border: `1px solid ${expanded ? 'var(--ink)' : 'var(--border)'}`
           }}
         >
-          {expanded ? '✓ Done' : '⚙ Customize'}
+          {expanded ? (
+            <>
+              <Check className="w-3 h-3" />
+              <span>Done</span>
+            </>
+          ) : (
+            <>
+              <Settings2 className="w-3 h-3" />
+              <span>Customize</span>
+            </>
+          )}
         </button>
-        <button onClick={onRemove} className="opacity-0 group-hover:opacity-100 transition-opacity text-lg" style={{ color: 'var(--muted)' }}>×</button>
+        <button onClick={onRemove} className="opacity-0 group-hover:opacity-100 transition-opacity p-1" style={{ color: 'var(--muted)' }}>
+          <X className="w-4 h-4" />
+        </button>
       </div>
       
       {/* Expanded hourly editor */}
@@ -713,10 +725,25 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
                 border: scenario === s ? '1px solid var(--ink)' : '1px solid var(--border)',
               }}
             >
-              <div className="text-xs mb-1 opacity-60">
-                {s === 'day_outage' && '☀ Day outage (6am–6pm)'}
-                {s === 'night_outage' && '🌙 Night outage (6pm–6am)'}
-                {s === 'worst_case' && '⚡ Worst case (all day)'}
+              <div className="text-xs mb-1 opacity-60 flex items-center gap-1">
+                {s === 'day_outage' && (
+                  <>
+                    <Sun className="w-3 h-3" />
+                    <span>Day outage (6am–6pm)</span>
+                  </>
+                )}
+                {s === 'night_outage' && (
+                  <>
+                    <Moon className="w-3 h-3" />
+                    <span>Night outage (6pm–6am)</span>
+                  </>
+                )}
+                {s === 'worst_case' && (
+                  <>
+                    <Zap className="w-3 h-3" />
+                    <span>Worst case (all day)</span>
+                  </>
+                )}
               </div>
               <div className="text-2xl font-medium num">
                 {isFinite(runtime) ? runtime.toFixed(1) : '∞'}
@@ -744,8 +771,18 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
               Does the battery recover between outages?
             </p>
           </div>
-          <div className={`badge ${cycleAnalysis.recovers ? 'badge-success' : 'badge-danger'}`}>
-            {cycleAnalysis.recovers ? '✓ Recovers' : '✗ Does not recover'}
+          <div className={`badge ${cycleAnalysis.recovers ? 'badge-success' : 'badge-danger'} flex items-center gap-1`}>
+            {cycleAnalysis.recovers ? (
+              <>
+                <Check className="w-3 h-3" />
+                <span>Recovers</span>
+              </>
+            ) : (
+              <>
+                <X className="w-3 h-3" />
+                <span>Does not recover</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -778,8 +815,14 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
             </div>
           </div>
           <div className="flex justify-between text-xs" style={{ color: 'var(--muted)' }}>
-            <span>⚡ Outage (discharge)</span>
-            <span>🔌 Grid (recharge)</span>
+            <span className="flex items-center gap-1">
+              <Zap className="w-3 h-3" />
+              Outage (discharge)
+            </span>
+            <span className="flex items-center gap-1">
+              <Plug className="w-3 h-3" />
+              Grid (recharge)
+            </span>
           </div>
         </div>
 
@@ -894,7 +937,10 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
                 </span>
                 <div className="flex-1 text-sm">
                   <p className="font-medium">{w.message}</p>
-                  <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>→ {w.suggestedFix}</p>
+                  <p className="text-xs mt-1 flex items-start gap-1" style={{ color: 'var(--muted)' }}>
+                    <ArrowRight className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                    <span>{w.suggestedFix}</span>
+                  </p>
                 </div>
               </div>
             ))}

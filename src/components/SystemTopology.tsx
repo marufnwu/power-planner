@@ -54,7 +54,7 @@ export function SystemTopology({
           {/* Label */}
           <text x="0" y="60" textAnchor="middle" fontSize="11" fill="#6b6b6b" fontFamily="var(--font-mono)">GRID</text>
           <text x="0" y="76" textAnchor="middle" fontSize="10" fill={gridAvailable ? '#1a7f37' : '#c2410c'} fontFamily="var(--font-mono)" fontWeight="600">
-            {gridAvailable ? '● LIVE' : '○ OUT'}
+            {gridAvailable ? 'LIVE' : 'OUT'}
           </text>
         </g>
 
@@ -137,7 +137,7 @@ export function SystemTopology({
             {batteryAh}Ah
           </text>
           <text x="0" y="84" textAnchor="middle" fontSize="9" fill={batteryCharging ? '#1a7f37' : '#b45309'} fontFamily="var(--font-mono)">
-            {batteryCharging ? '↻ CHARGING' : '↯ DISCHARGING'}
+            {batteryCharging ? 'CHARGING' : 'DISCHARGING'}
           </text>
         </g>
 

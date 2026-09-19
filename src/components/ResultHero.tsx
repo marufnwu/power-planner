@@ -1,5 +1,6 @@
 import { AnimatedNumber } from './AnimatedNumber';
 import { Project, SimulationResult } from '../types';
+import { Zap, Battery, Plug, ArrowRight } from 'lucide-react';
 
 interface ResultHeroProps {
   project: Project;
@@ -38,7 +39,7 @@ export function ResultHero({ project, result, totalLoadW }: ResultHeroProps) {
     if (recovers) {
       summary += ` Battery recovers in ${rechargeH.toFixed(1)}h (you have ${gridH.toFixed(1)}h grid time).`;
     } else {
-      summary += ` ⚠️ Battery needs ${rechargeH.toFixed(1)}h to recharge but only has ${gridH.toFixed(1)}h grid time.`;
+      summary += ` Battery needs ${rechargeH.toFixed(1)}h to recharge but only has ${gridH.toFixed(1)}h grid time.`;
     }
   }
 
@@ -96,11 +97,20 @@ export function ResultHero({ project, result, totalLoadW }: ResultHeroProps) {
           
           {/* Cycle visualization */}
           <div className="flex items-center gap-2 text-xs num" style={{ color: 'var(--muted)' }}>
-            <span>⚡ {outageH.toFixed(1)}h outage</span>
-            <span>→</span>
-            <span>🔋 needs {rechargeH.toFixed(1)}h recharge</span>
-            <span>→</span>
-            <span>🔌 {gridH.toFixed(1)}h grid</span>
+            <span className="flex items-center gap-1">
+              <Zap className="w-3 h-3" />
+              {outageH.toFixed(1)}h outage
+            </span>
+            <ArrowRight className="w-3 h-3" />
+            <span className="flex items-center gap-1">
+              <Battery className="w-3 h-3" />
+              needs {rechargeH.toFixed(1)}h recharge
+            </span>
+            <ArrowRight className="w-3 h-3" />
+            <span className="flex items-center gap-1">
+              <Plug className="w-3 h-3" />
+              {gridH.toFixed(1)}h grid
+            </span>
           </div>
         </div>
       </div>

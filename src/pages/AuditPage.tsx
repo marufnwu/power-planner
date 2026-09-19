@@ -6,7 +6,7 @@ import { calculateContinuousRuntime, calculateSizing, runSimulation } from '../l
 import { generateHourlyProfile } from '../lib/usageProfiles';
 import { createDefaultProject, encodeProject } from '../lib/state';
 import { AnimatedNumber } from '../components/AnimatedNumber';
-import { AlertTriangle, Check, ArrowRight, Zap, Battery as BatteryIcon, Sun } from 'lucide-react';
+import { AlertTriangle, Check, ArrowRight, Zap, Battery as BatteryIcon, Sun, X } from 'lucide-react';
 
 export function AuditPage() {
   const navigate = useNavigate();
@@ -308,7 +308,10 @@ export function AuditPage() {
                     )}
                     <div>
                       <p className="font-medium text-sm">{issue.message}</p>
-                      <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>→ {issue.fix}</p>
+                      <p className="text-xs mt-1 flex items-start gap-1" style={{ color: 'var(--muted)' }}>
+                        <ArrowRight className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                        <span>{issue.fix}</span>
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -328,8 +331,13 @@ export function AuditPage() {
                 <div className="eyebrow mb-1">Min SoC</div>
                 <div className="text-lg num font-medium">
                   {result.minSoC.toFixed(0)}%
-                  <span className="text-xs ml-1" style={{ color: result.minSoC < 20 ? 'var(--danger)' : 'var(--muted)' }}>
-                    {result.minSoC < 20 ? '⚠ low' : ''}
+                  <span className="text-xs ml-1 flex items-center gap-0.5" style={{ color: result.minSoC < 20 ? 'var(--danger)' : 'var(--muted)' }}>
+                    {result.minSoC < 20 && (
+                      <>
+                        <AlertTriangle className="w-3 h-3" />
+                        <span>low</span>
+                      </>
+                    )}
                   </span>
                 </div>
               </div>
@@ -341,13 +349,22 @@ export function AuditPage() {
                 <div className="eyebrow mb-2" style={{ color: 'var(--accent)' }}>Upgrade path</div>
                 <div className="space-y-2 text-sm">
                   {sizing.recommendedVA > inverterVA && (
-                    <p>→ Upgrade inverter to <strong className="num">{sizing.recommendedVA}VA</strong> for headroom</p>
+                    <p className="flex items-start gap-1">
+                      <ArrowRight className="w-3 h-3 flex-shrink-0 mt-1" />
+                      <span>Upgrade inverter to <strong className="num">{sizing.recommendedVA}VA</strong> for headroom</span>
+                    </p>
                   )}
                   {result.recoveryStatus !== 'yes' && (
-                    <p>→ Add <strong className="num">{sizing.solarWpNeeded}Wp</strong> solar to ensure battery recharges</p>
+                    <p className="flex items-start gap-1">
+                      <ArrowRight className="w-3 h-3 flex-shrink-0 mt-1" />
+                      <span>Add <strong className="num">{sizing.solarWpNeeded}Wp</strong> solar to ensure battery recharges</span>
+                    </p>
                   )}
                   {battery.chemistry === 'tubular' && (
-                    <p>→ Consider switching to LiFePO4 for 3× longer life and 2× usable capacity</p>
+                    <p className="flex items-start gap-1">
+                      <ArrowRight className="w-3 h-3 flex-shrink-0 mt-1" />
+                      <span>Consider switching to LiFePO4 for 3× longer life and 2× usable capacity</span>
+                    </p>
                   )}
                 </div>
                 <button onClick={upgradeToPlanner} className="mt-4 btn-primary text-sm">
