@@ -11,6 +11,7 @@ import { BatteryVisual } from '../components/BatteryVisual';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 import { HourlyUsageEditor } from '../components/HourlyUsageEditor';
 import { AdvancedSettings, CalculationSettings, defaultSettings } from '../components/AdvancedSettings';
+import { BatteryCustomizer } from '../components/BatteryCustomizer';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, ReferenceLine } from 'recharts';
 import { Share2, Printer, ChevronDown, ChevronUp, Info, AlertTriangle, Check, Zap, Sun, Moon, Battery as BatteryIcon, Settings2, Plug, RefreshCw, X, Plus, ArrowRight } from 'lucide-react';
 
@@ -534,33 +535,15 @@ function SystemStep({ project, setProject, sizing, result, calcSettings, setCalc
           <BatteryIcon className="w-4 h-4" style={{ color: 'var(--success)' }} />
           <h2 className="text-xl font-medium tracking-tight">Battery</h2>
         </div>
-        <BatteryVisual
-          batteries={batteryCatalog.map(batt => {
-            const bank = { unit: batt, series: Math.ceil(project.inverter.systemVoltage / batt.nominalV), parallel: 1 };
-            const loads = project.loads.filter(l => l.onBackupCircuit);
-            const avgLoadW = loads.reduce((s, l) => {
-              const avgHourly = l.hourly.reduce((a, b) => a + b, 0) / 24;
-              return s + l.qty * l.watts * l.dutyCycle * avgHourly;
-            }, 0);
-            const runtime = calculateContinuousRuntime(bank, project.inverter, avgLoadW);
-            const usableWh = batt.nominalV * batt.ratedAh * batt.usableDoD;
-            const energyRemoved = usableWh * result.avgDoD;
-            const chargeA = Math.min(project.inverter.gridChargerMaxA, batt.maxChargeC * batt.ratedAh, batt.maxChargeA || Infinity);
-            const recharge = energyRemoved > 0 ? energyRemoved / (chargeA * batt.nominalV * batt.chargeEfficiency) : 0;
-            const cycleAtDoD = interpolateCycleLife(batt, result.avgDoD);
-            const cyclesPerYear = result.cyclesPerDay * 365;
-            const lifeYears = cyclesPerYear > 0 ? Math.min(cycleAtDoD / cyclesPerYear, batt.calendarLifeYears.typ) : batt.calendarLifeYears.typ;
-            const costPerKwh = batt.price && cycleAtDoD > 0 ? batt.price / ((usableWh / 1000) * cycleAtDoD) : 0;
-            return {
-              unit: batt, runtime, recharge, lifeYears, usableWh, costPerKwh,
-              selected: project.bank.unit.id === batt.id,
-            };
-          })}
-          onSelect={(id) => {
-            const batt = batteryCatalog.find(b => b.id === id);
-            if (batt) {
-              setProject(p => ({ ...p, bank: { ...p.bank, unit: batt, series: Math.ceil(p.inverter.systemVoltage / batt.nominalV) } }));
-            }
+        <BatteryCustomizer
+          selectedBattery={project.bank.unit}
+          onSelect={(battery) => {
+            setProject(p => ({ ...p, bank: { ...p.bank, unit: battery, series: Math.ceil(p.inverter.systemVoltage / battery.nominalV) } }));
+          }}
+          series={project.bank.series}
+          parallel={project.bank.parallel}
+          onConfigChange={(series, parallel) => {
+            setProject(p => ({ ...p, bank: { ...p.bank, series, parallel } }));
           }}
         />
       </div>
