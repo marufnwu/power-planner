@@ -1,1 +1,119 @@
 @import "tailwindcss";
+
+/* Custom range input styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f59e0b;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f59e0b;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* Custom checkbox styling */
+input[type="checkbox"] {
+  accent-color: #f59e0b;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+
+/* Print styles */
+@media print {
+  header, nav, button, .no-print {
+    display: none !important;
+  }
+  
+  body {
+    font-size: 12pt;
+    color: black;
+    background: white;
+  }
+  
+  .bg-white {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+  
+  .grid {
+    display: block !important;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Animation for toast */
+@keyframes slideUp {
+  from { transform: translate(-50%, 20px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+.fixed.bottom-4 {
+  animation: slideUp 0.2s ease-out;
+}
+
+/* Details/summary styling */
+details summary {
+  list-style: none;
+}
+
+details summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Focus styles for accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+/* Table responsive */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
