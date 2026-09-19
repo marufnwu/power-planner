@@ -62,6 +62,49 @@ npm run build
 npm run preview
 ```
 
+## 🐳 Docker Deployment
+
+### Local Testing with Docker Compose
+```bash
+# Build and run
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
+```
+
+Access at: http://localhost:3000
+
+### Production Docker Build
+```bash
+# Build image
+docker build -t home-power-planner .
+
+# Run container
+docker run -p 80:80 home-power-planner
+```
+
+### Coolify Deployment
+
+See [Coolify Deployment Guide](docs/COOLIFY_DEPLOYMENT.md) for detailed instructions.
+
+**Quick Steps:**
+1. Push code to Git repository
+2. In Coolify: New Resource → Docker Compose
+3. Select repository and branch
+4. Deploy (2-3 minutes)
+
+**Features:**
+- ✅ Multi-stage Docker build (small image ~50MB)
+- ✅ Nginx with SPA routing
+- ✅ Gzip compression
+- ✅ Health check endpoint
+- ✅ Security headers
+- ✅ Auto-deploy support
+
 ## 📁 Project Structure
 
 ```
