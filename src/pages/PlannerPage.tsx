@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Project, LoadItem, SimulationResult, BatteryUnit } from '../types';
 import { createDefaultProject, decodeProject, encodeProject, getShareUrl } from '../lib/state';
 import { runSimulation, calculateContinuousRuntime, calculateSizing, calculateCosts } from '../lib/engine/calculator';
 import { applianceTemplates, batteryCatalog, defaultPvPanel } from '../data/catalogs';
+import { generateHourlyProfile, getUsageLabel, getUsageDescription, getScenarioLoad } from '../lib/usageProfiles';
 import { ResultHero } from '../components/ResultHero';
 import { SystemTopology } from '../components/SystemTopology';
 import { BatteryVisual } from '../components/BatteryVisual';
@@ -77,9 +78,10 @@ export function PlannerPage() {
       powerFactor: tmpl.powerFactor,
       surgeMultiplier: tmpl.surgeMultiplier,
       dutyCycle: tmpl.dutyCycle,
-      hourly: new Array(24).fill(0.5),
+      hourly: generateHourlyProfile(tmpl.defaultUsage, tmpl.category),
       onBackupCircuit: true,
       priority: 2,
+      usageProfile: tmpl.defaultUsage,
     };
     setProject(p => ({ ...p, loads: [...p.loads, newLoad] }));
   };
@@ -195,6 +197,9 @@ export function PlannerPage() {
                   loadW={totalLoadW}
                   batteryCharging={batteryCharging}
                   inverterOn={totalLoadW > 0}
+                  hasSolar={!!project.pv}
+                  batteryAh={project.bank.unit.ratedAh * project.bank.parallel}
+                  inverterVA={project.inverter.ratedVA}
                 />
               </div>
 
@@ -288,11 +293,11 @@ function LoadsStep({ project, updateLoad, addLoad, removeLoad }: {
 
 function LoadRow({ load, onUpdate, onRemove }: { load: LoadItem; onUpdate: (u: Partial<LoadItem>) => void; onRemove: () => void }) {
   return (
-    <div className="group flex items-center gap-3 p-3 rounded-xl border transition-colors hover:border-[var(--border-strong)]" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+    <div className="group flex flex-wrap items-center gap-3 p-3 rounded-xl border transition-colors hover:border-[var(--border-strong)]" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
       <input
         value={load.label}
         onChange={e => onUpdate({ label: e.target.value })}
-        className="flex-1 text-sm font-medium bg-transparent outline-none min-w-0"
+        className="flex-1 text-sm font-medium bg-transparent outline-none min-w-[100px]"
         style={{ color: 'var(--ink)' }}
       />
       <div className="flex items-center gap-2">
@@ -313,6 +318,25 @@ function LoadRow({ load, onUpdate, onRemove }: { load: LoadItem; onUpdate: (u: P
           <span className="text-xs num" style={{ color: 'var(--muted)' }}>W</span>
         </div>
       </div>
+      {/* Usage profile selector */}
+      <select
+        value={load.usageProfile}
+        onChange={e => {
+          const newProfile = e.target.value as any;
+          const tmpl = load.templateId ? applianceTemplates.find(t => t.id === load.templateId) : undefined;
+          onUpdate({
+            usageProfile: newProfile,
+            hourly: generateHourlyProfile(newProfile, tmpl?.category),
+          });
+        }}
+        className="input text-xs py-1 px-2 w-auto"
+        title={getUsageDescription(load.usageProfile)}
+      >
+        <option value="both">☀🌙 All day</option>
+        <option value="day">☀ Daytime</option>
+        <option value="night">🌙 Nighttime</option>
+        <option value="occasional">◌ Occasional</option>
+      </select>
       <label className="flex items-center gap-1.5 cursor-pointer text-xs">
         <input
           type="checkbox" checked={load.onBackupCircuit}
@@ -556,6 +580,29 @@ function SystemStep({ project, setProject, sizing, result }: {
 // ============================================================
 function ResultsDetail({ result, project }: { result: SimulationResult; project: Project }) {
   const [showMath, setShowMath] = useState(false);
+  const [scenario, setScenario] = useState<'day_outage' | 'night_outage' | 'worst_case'>('worst_case');
+  
+  // Calculate scenario-specific runtimes
+  const scenarioRuntimes = useMemo(() => {
+    const scenarios = ['day_outage', 'night_outage', 'worst_case'] as const;
+    return scenarios.map(s => {
+      // Filter loads based on scenario
+      const scenarioLoads = project.loads.map(l => {
+        const adjustedHourly = getScenarioLoad(l.hourly, s);
+        return { ...l, hourly: adjustedHourly };
+      });
+      
+      // Calculate average load for this scenario
+      const backupLoads = scenarioLoads.filter(l => l.onBackupCircuit);
+      const avgLoadW = backupLoads.reduce((sum, l) => {
+        const avgHourly = l.hourly.reduce((a, b) => a + b, 0) / 24;
+        return sum + l.qty * l.watts * l.dutyCycle * avgHourly;
+      }, 0);
+      
+      const runtime = calculateContinuousRuntime(project.bank, project.inverter, avgLoadW);
+      return { scenario: s, runtime, avgLoadW };
+    });
+  }, [project]);
   
   const chartData = result.timeSeries.filter((_, i) => i % 4 === 0).map(t => ({
     time: `${Math.floor(t.t / 60)}h`,
@@ -566,6 +613,43 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
 
   return (
     <div className="space-y-6">
+      {/* Scenario Comparison */}
+      <div>
+        <div className="eyebrow mb-3">Runtime by scenario</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          {scenarioRuntimes.map(({ scenario: s, runtime, avgLoadW }) => (
+            <button
+              key={s}
+              onClick={() => setScenario(s)}
+              className="p-4 rounded-xl text-left transition-all"
+              style={{
+                background: scenario === s ? 'var(--ink)' : 'var(--surface)',
+                color: scenario === s ? 'var(--paper)' : 'var(--ink)',
+                border: scenario === s ? '1px solid var(--ink)' : '1px solid var(--border)',
+              }}
+            >
+              <div className="text-xs mb-1 opacity-60">
+                {s === 'day_outage' && '☀ Day outage (6am–6pm)'}
+                {s === 'night_outage' && '🌙 Night outage (6pm–6am)'}
+                {s === 'worst_case' && '⚡ Worst case (all day)'}
+              </div>
+              <div className="text-2xl font-medium num">
+                {isFinite(runtime) ? runtime.toFixed(1) : '∞'}
+                <span className="text-sm ml-1 opacity-60">h</span>
+              </div>
+              <div className="text-xs mt-1 opacity-60 num">
+                avg {avgLoadW.toFixed(0)}W
+              </div>
+            </button>
+          ))}
+        </div>
+        <p className="text-xs" style={{ color: 'var(--muted)' }}>
+          {scenario === 'day_outage' && 'Day outages: lights not needed, fans critical. Runtime is usually longer.'}
+          {scenario === 'night_outage' && 'Night outages: lights essential, fans + TV on. Runtime is usually shorter.'}
+          {scenario === 'worst_case' && 'Worst case: all loads running. Use this for conservative sizing.'}
+        </p>
+      </div>
+
       {/* SoC Chart */}
       <div>
         <div className="eyebrow mb-3">Battery state of charge</div>

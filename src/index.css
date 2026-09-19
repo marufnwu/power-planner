@@ -444,9 +444,77 @@ input[type="checkbox"] {
    ============================================================ */
 
 @media print {
-  .no-print, header, nav, button { display: none !important; }
-  body { background: white; color: black; font-size: 11pt; }
-  .card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+  /* Hide interactive elements */
+  .no-print, header, nav, button, input[type="range"], select {
+    display: none !important;
+  }
+  
+  /* Base styles */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+  
+  /* Remove backgrounds and shadows */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  
+  /* Cards and containers */
+  .card, [style*="background"] {
+    background: white !important;
+    border: 1px solid #ddd !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  
+  /* Ensure text is black */
+  h1, h2, h3, h4, h5, h6, p, span, div, li {
+    color: black !important;
+  }
+  
+  /* Show links as underlined */
+  a {
+    color: black !important;
+    text-decoration: underline;
+  }
+  
+  /* Page breaks */
+  h1, h2, h3 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+  
+  /* Tables */
+  table {
+    border-collapse: collapse;
+  }
+  
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+  }
+  
+  /* Hide decorative elements */
+  .animate-fade-up, .animate-fade-in, .animate-slide-right {
+    animation: none !important;
+  }
+  
+  /* Show all content */
+  details[open] summary ~ * {
+    display: block !important;
+  }
+  
+  /* Print header */
+  @page {
+    margin: 2cm;
+    @top-center {
+      content: "Power Planner — System Analysis";
+    }
+  }
 }
 
 /* ============================================================

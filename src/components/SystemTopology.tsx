@@ -7,6 +7,9 @@ interface SystemTopologyProps {
   loadW: number;
   batteryCharging: boolean;
   inverterOn: boolean;
+  hasSolar?: boolean;
+  batteryAh?: number;
+  inverterVA?: number;
 }
 
 export function SystemTopology({
@@ -16,6 +19,9 @@ export function SystemTopology({
   loadW,
   batteryCharging,
   inverterOn,
+  hasSolar = false,
+  batteryAh = 100,
+  inverterVA = 1200,
 }: SystemTopologyProps) {
   // Power flow magnitudes (normalized for visual thickness)
   const solarFlow = Math.min(solarW / 1000, 1);
@@ -100,6 +106,9 @@ export function SystemTopology({
           ))}
           {/* Label */}
           <text x="0" y="70" textAnchor="middle" fontSize="11" fill="#6b6b6b" fontFamily="var(--font-mono)">INVERTER</text>
+          <text x="0" y="84" textAnchor="middle" fontSize="10" fill="#0a0a0a" fontFamily="var(--font-mono)" fontWeight="600">
+            {inverterVA}VA
+          </text>
         </g>
 
         {/* ===== BATTERY (bottom-left) ===== */}
@@ -124,7 +133,10 @@ export function SystemTopology({
           </text>
           {/* Label */}
           <text x="0" y="55" textAnchor="middle" fontSize="11" fill="#6b6b6b" fontFamily="var(--font-mono)">BATTERY</text>
-          <text x="0" y="70" textAnchor="middle" fontSize="10" fill={batteryCharging ? '#1a7f37' : '#b45309'} fontFamily="var(--font-mono)">
+          <text x="0" y="70" textAnchor="middle" fontSize="10" fill="#0a0a0a" fontFamily="var(--font-mono)" fontWeight="600">
+            {batteryAh}Ah
+          </text>
+          <text x="0" y="84" textAnchor="middle" fontSize="9" fill={batteryCharging ? '#1a7f37' : '#b45309'} fontFamily="var(--font-mono)">
             {batteryCharging ? '↻ CHARGING' : '↯ DISCHARGING'}
           </text>
         </g>

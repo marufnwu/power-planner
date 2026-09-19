@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createDefaultProject, encodeProject } from '../lib/state';
 import { applianceTemplates } from '../data/catalogs';
+import { generateHourlyProfile } from '../lib/usageProfiles';
 import { ChevronRight } from 'lucide-react';
 
 type WizardStep = 'shedding' | 'loads' | 'goal' | 'solar' | 'roof' | 'result';
@@ -60,9 +61,10 @@ export function WizardPage() {
         powerFactor: tmpl.powerFactor,
         surgeMultiplier: tmpl.surgeMultiplier,
         dutyCycle: tmpl.dutyCycle,
-        hourly: new Array(24).fill(0.5),
+        hourly: generateHourlyProfile(tmpl.defaultUsage, tmpl.category),
         onBackupCircuit: true,
         priority: 2 as const,
+        usageProfile: tmpl.defaultUsage,
       };
     }).filter(Boolean);
     project.loads = loads as typeof project.loads;

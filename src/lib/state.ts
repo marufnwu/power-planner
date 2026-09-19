@@ -2,6 +2,7 @@ import LZString from 'lz-string';
 import { Project } from '../types';
 import { defaultInverter, batteryCatalog, defaultSolarSite, defaultTariff, defaultGridSchedule } from '../data/catalogs';
 import { getDefaultHourly } from '../data/catalogs';
+import { generateHourlyProfile } from './usageProfiles';
 
 /**
  * Encode project to URL-safe compressed string
@@ -69,9 +70,10 @@ export function createDefaultProject(): Project {
         powerFactor: 0.85,
         surgeMultiplier: 1.5,
         dutyCycle: 1,
-        hourly: getDefaultHourly('cooling'),
+        hourly: generateHourlyProfile('both', 'cooling'),
         onBackupCircuit: true,
         priority: 2,
+        usageProfile: 'both',
       },
       {
         id: 'load-light',
@@ -82,9 +84,10 @@ export function createDefaultProject(): Project {
         powerFactor: 0.9,
         surgeMultiplier: 1,
         dutyCycle: 1,
-        hourly: getDefaultHourly('lighting'),
+        hourly: generateHourlyProfile('night', 'lighting'),
         onBackupCircuit: true,
         priority: 2,
+        usageProfile: 'night',
       },
       {
         id: 'load-router',
@@ -95,9 +98,10 @@ export function createDefaultProject(): Project {
         powerFactor: 0.9,
         surgeMultiplier: 1,
         dutyCycle: 1,
-        hourly: getDefaultHourly('office'),
+        hourly: generateHourlyProfile('both', 'office'),
         onBackupCircuit: true,
         priority: 1,
+        usageProfile: 'both',
       },
     ],
     grid: { ...defaultGridSchedule },

@@ -116,7 +116,7 @@ export function HomePage() {
               num="C"
               title="Audit my setup"
               body="Already have an IPS? Enter your gear and see real runtime, weak points, upgrade options."
-              link="/plan"
+              link="/audit"
               cta="Start audit"
             />
             <EntryPath

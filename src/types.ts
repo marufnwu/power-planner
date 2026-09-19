@@ -20,7 +20,11 @@ export interface ApplianceTemplate {
   verified: boolean;
   source?: string;
   updatedAt: string;
+  defaultUsage: UsageProfile;
 }
+
+export type UsageProfile = 'day' | 'night' | 'both' | 'occasional';
+export type LoadScenario = 'day_outage' | 'night_outage' | 'worst_case';
 
 export interface LoadItem {
   id: string;
@@ -34,6 +38,8 @@ export interface LoadItem {
   hourly: number[]; // 24 values 0-1
   onBackupCircuit: boolean;
   priority: 1 | 2 | 3;
+  usageProfile: UsageProfile; // NEW: when does this load actually run?
+  room?: string; // NEW: optional room/zone assignment
 }
 
 export interface Inverter {

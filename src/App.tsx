@@ -1,11 +1,13 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useEffect, useState, lazy, Suspense } from 'react';
+import { I18nProvider, LocaleToggle } from './lib/i18n';
 
 const HomePage = lazy(() => import('./pages/HomePage').then(m => ({ default: m.HomePage })));
 const WizardPage = lazy(() => import('./pages/WizardPage').then(m => ({ default: m.WizardPage })));
 const PlannerPage = lazy(() => import('./pages/PlannerPage').then(m => ({ default: m.PlannerPage })));
 const AssumptionsPage = lazy(() => import('./pages/AssumptionsPage').then(m => ({ default: m.AssumptionsPage })));
 const LearnPage = lazy(() => import('./pages/LearnPage').then(m => ({ default: m.LearnPage })));
+const AuditPage = lazy(() => import('./pages/AuditPage').then(m => ({ default: m.AuditPage })));
 
 function Layout() {
   const location = useLocation();
@@ -44,12 +46,16 @@ function Layout() {
           <div className="hidden md:flex items-center gap-8 text-sm">
             <NavLink to="/choose" label="Choose" />
             <NavLink to="/plan" label="Planner" />
+            <NavLink to="/audit" label="Audit" />
             <NavLink to="/learn" label="Learn" />
             <NavLink to="/assumptions" label="Assumptions" />
           </div>
-          <Link to="/plan" className="btn-primary text-xs md:text-sm py-2 px-4">
-            Open planner
-          </Link>
+          <div className="flex items-center gap-3">
+            <LocaleToggle />
+            <Link to="/plan" className="btn-primary text-xs md:text-sm py-2 px-4">
+              Open planner
+            </Link>
+          </div>
         </nav>
       </header>
 
@@ -59,6 +65,7 @@ function Layout() {
             <Route path="/" element={<HomePage />} />
             <Route path="/choose" element={<WizardPage />} />
             <Route path="/plan" element={<PlannerPage />} />
+            <Route path="/audit" element={<AuditPage />} />
             <Route path="/assumptions" element={<AssumptionsPage />} />
             <Route path="/learn" element={<LearnPage />} />
           </Routes>
@@ -139,8 +146,10 @@ function PageLoader() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Layout />
-    </BrowserRouter>
+    <I18nProvider>
+      <BrowserRouter>
+        <Layout />
+      </BrowserRouter>
+    </I18nProvider>
   );
 }
