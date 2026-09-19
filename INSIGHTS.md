@@ -96,12 +96,48 @@ This document captures the real-world insights from users that led to significan
 
 ---
 
+---
+
+## Insight #3: Full Flexibility for Load Patterns
+
+**User said:** "But there is another catch, like some light may used in day some not, same for other appliance, we want to give user all flexibity not only this"
+
+**What we missed:** Even with day/night/both/occasional presets, we were still being too rigid. Reality is more nuanced:
+- Bathroom light: used during day AND night
+- Kitchen light: mostly during day, sometimes at night
+- Bedroom fan: only at night
+- Living room fan: mostly at night, sometimes during day
+- Garage light: occasional, unpredictable
+
+Users need **full control** over each hour of the day for each load, not just broad categories.
+
+**What we added:**
+1. **Hourly usage editor** for each load:
+   - Visual 24-hour timeline
+   - Click each hour to toggle: off → sometimes → on
+   - Three states per hour: 0%, 50%, 100% usage
+   - Real-time stats: average, day %, night %
+
+2. **Presets as starting points:**
+   - Quick presets (day/night/both/occasional) still available
+   - But users can customize any hour after selecting a preset
+   - "Custom" badge appears when pattern doesn't match any preset
+
+3. **Expandable interface:**
+   - Each load has a "⚙ Customize" button
+   - Clicking reveals the full hourly editor
+   - "✓ Done" button collapses it back
+
+**Why it matters:** This gives users the flexibility to model their actual habits, not our assumptions. A bathroom light that runs 7am-9am and 8pm-10pm is now possible. A kitchen fan that runs 11am-2pm and 6pm-9pm is now possible. The tool adapts to reality, not the other way around.
+
+---
+
 ## The Pattern
 
-Both user insights followed the same pattern:
-1. **We modeled something too simply** (loads always on, battery just drains)
-2. **User pointed out real-world complexity** (loads vary by time, batteries recharge)
-3. **We added the missing dimension** (usage profiles, cycle analysis)
+All three user insights followed the same pattern:
+1. **We modeled something too simply** (loads always on, battery just drains, rigid usage categories)
+2. **User pointed out real-world complexity** (loads vary by time, batteries recharge, usage is nuanced)
+3. **We added the missing dimension** (usage profiles, cycle analysis, hourly customization)
 4. **The tool became genuinely useful** instead of just theoretically correct
 
 This is why user feedback is irreplaceable. We can build correct physics, but only users can tell us what we're missing about how systems actually work in practice.

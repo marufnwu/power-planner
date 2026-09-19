@@ -9,6 +9,7 @@ import { ResultHero } from '../components/ResultHero';
 import { SystemTopology } from '../components/SystemTopology';
 import { BatteryVisual } from '../components/BatteryVisual';
 import { AnimatedNumber } from '../components/AnimatedNumber';
+import { HourlyUsageEditor } from '../components/HourlyUsageEditor';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, ReferenceLine } from 'recharts';
 import { Share2, Printer, ChevronDown, ChevronUp, Info, AlertTriangle, Check, Zap, Sun, Battery as BatteryIcon, Settings2 } from 'lucide-react';
 
@@ -292,59 +293,86 @@ function LoadsStep({ project, updateLoad, addLoad, removeLoad }: {
 }
 
 function LoadRow({ load, onUpdate, onRemove }: { load: LoadItem; onUpdate: (u: Partial<LoadItem>) => void; onRemove: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  
   return (
-    <div className="group flex flex-wrap items-center gap-3 p-3 rounded-xl border transition-colors hover:border-[var(--border-strong)]" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-      <input
-        value={load.label}
-        onChange={e => onUpdate({ label: e.target.value })}
-        className="flex-1 text-sm font-medium bg-transparent outline-none min-w-[100px]"
-        style={{ color: 'var(--ink)' }}
-      />
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1">
-          <span className="text-xs num" style={{ color: 'var(--muted)' }}>×</span>
-          <input
-            type="number" min={1} max={20} value={load.qty}
-            onChange={e => onUpdate({ qty: Math.max(1, +e.target.value) })}
-            className="input input-mono w-12 text-center py-1 text-sm"
-          />
-        </div>
-        <div className="flex items-center gap-1">
-          <input
-            type="number" min={1} value={load.watts}
-            onChange={e => onUpdate({ watts: Math.max(1, +e.target.value) })}
-            className="input input-mono w-16 text-center py-1 text-sm"
-          />
-          <span className="text-xs num" style={{ color: 'var(--muted)' }}>W</span>
-        </div>
-      </div>
-      {/* Usage profile selector */}
-      <select
-        value={load.usageProfile}
-        onChange={e => {
-          const newProfile = e.target.value as any;
-          const tmpl = load.templateId ? applianceTemplates.find(t => t.id === load.templateId) : undefined;
-          onUpdate({
-            usageProfile: newProfile,
-            hourly: generateHourlyProfile(newProfile, tmpl?.category),
-          });
-        }}
-        className="input text-xs py-1 px-2 w-auto"
-        title={getUsageDescription(load.usageProfile)}
-      >
-        <option value="both">☀🌙 All day</option>
-        <option value="day">☀ Daytime</option>
-        <option value="night">🌙 Nighttime</option>
-        <option value="occasional">◌ Occasional</option>
-      </select>
-      <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+    <div className="rounded-xl border transition-colors hover:border-[var(--border-strong)]" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+      <div className="group flex flex-wrap items-center gap-3 p-3">
         <input
-          type="checkbox" checked={load.onBackupCircuit}
-          onChange={e => onUpdate({ onBackupCircuit: e.target.checked })}
+          value={load.label}
+          onChange={e => onUpdate({ label: e.target.value })}
+          className="flex-1 text-sm font-medium bg-transparent outline-none min-w-[100px]"
+          style={{ color: 'var(--ink)' }}
         />
-        <span style={{ color: 'var(--muted)' }}>Backup</span>
-      </label>
-      <button onClick={onRemove} className="opacity-0 group-hover:opacity-100 transition-opacity text-lg" style={{ color: 'var(--muted)' }}>×</button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <span className="text-xs num" style={{ color: 'var(--muted)' }}>×</span>
+            <input
+              type="number" min={1} max={20} value={load.qty}
+              onChange={e => onUpdate({ qty: Math.max(1, +e.target.value) })}
+              className="input input-mono w-12 text-center py-1 text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            <input
+              type="number" min={1} value={load.watts}
+              onChange={e => onUpdate({ watts: Math.max(1, +e.target.value) })}
+              className="input input-mono w-16 text-center py-1 text-sm"
+            />
+            <span className="text-xs num" style={{ color: 'var(--muted)' }}>W</span>
+          </div>
+        </div>
+        {/* Quick usage profile selector */}
+        <select
+          value={load.usageProfile}
+          onChange={e => {
+            const newProfile = e.target.value as any;
+            const tmpl = load.templateId ? applianceTemplates.find(t => t.id === load.templateId) : undefined;
+            onUpdate({
+              usageProfile: newProfile,
+              hourly: generateHourlyProfile(newProfile, tmpl?.category),
+            });
+          }}
+          className="input text-xs py-1 px-2 w-auto"
+          title="Quick preset - click 'Customize' below for full control"
+        >
+          <option value="both">☀🌙 All day</option>
+          <option value="day">☀ Daytime</option>
+          <option value="night">🌙 Nighttime</option>
+          <option value="occasional">◌ Occasional</option>
+        </select>
+        <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+          <input
+            type="checkbox" checked={load.onBackupCircuit}
+            onChange={e => onUpdate({ onBackupCircuit: e.target.checked })}
+          />
+          <span style={{ color: 'var(--muted)' }}>Backup</span>
+        </label>
+        <button 
+          onClick={() => setExpanded(!expanded)}
+          className="text-xs px-2 py-1 rounded-lg transition-colors"
+          style={{ 
+            background: expanded ? 'var(--ink)' : 'transparent',
+            color: expanded ? 'var(--paper)' : 'var(--muted)',
+            border: `1px solid ${expanded ? 'var(--ink)' : 'var(--border)'}`
+          }}
+        >
+          {expanded ? '✓ Done' : '⚙ Customize'}
+        </button>
+        <button onClick={onRemove} className="opacity-0 group-hover:opacity-100 transition-opacity text-lg" style={{ color: 'var(--muted)' }}>×</button>
+      </div>
+      
+      {/* Expanded hourly editor */}
+      {expanded && (
+        <div className="px-3 pb-3 pt-1" style={{ borderTop: '1px solid var(--border)' }}>
+          <HourlyUsageEditor
+            hourly={load.hourly}
+            usageProfile={load.usageProfile}
+            onChange={(hourly, profile) => onUpdate({ hourly, usageProfile: profile })}
+            label={load.label}
+          />
+        </div>
+      )}
     </div>
   );
 }

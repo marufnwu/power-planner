@@ -1,0 +1,125 @@
+import { UsageProfile } from '../types';
+import { generateHourlyProfile, getUsageLabel } from '../lib/usageProfiles';
+
+interface HourlyUsageEditorProps {
+  hourly: number[];
+  usageProfile: UsageProfile;
+  onChange: (hourly: number[], profile: UsageProfile) => void;
+  label: string;
+}
+
+export function HourlyUsageEditor({ hourly, usageProfile, onChange, label }: HourlyUsageEditorProps) {
+  // Detect if current hourly pattern matches any preset
+  const isCustom = !['both', 'day', 'night', 'occasional'].some(profile => {
+    const presetHourly = generateHourlyProfile(profile as UsageProfile);
+    return hourly.every((val, i) => Math.abs(val - presetHourly[i]) < 0.01);
+  });
+  
+  const handlePresetChange = (newProfile: UsageProfile) => {
+    const newHourly = generateHourlyProfile(newProfile);
+    onChange(newHourly, newProfile);
+  };
+  
+  const handleHourClick = (hour: number) => {
+    const newHourly = [...hourly];
+    // Toggle between 0 and 1 (or cycle through 0, 0.5, 1)
+    if (newHourly[hour] === 0) newHourly[hour] = 0.5;
+    else if (newHourly[hour] === 0.5) newHourly[hour] = 1;
+    else newHourly[hour] = 0;
+    onChange(newHourly, 'both'); // Mark as custom
+  };
+  
+  // Calculate stats
+  const avgUsage = hourly.reduce((a, b) => a + b, 0) / 24;
+  const dayUsage = hourly.slice(6, 18).reduce((a, b) => a + b, 0) / 12;
+  const nightUsage = [...hourly.slice(0, 6), ...hourly.slice(18)].reduce((a, b) => a + b, 0) / 12;
+  
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
+          Usage pattern for {label}
+        </label>
+        {isCustom && (
+          <span className="badge badge-outline text-[10px]">Custom</span>
+        )}
+      </div>
+      
+      {/* Preset buttons */}
+      <div className="flex gap-1">
+        {(['both', 'day', 'night', 'occasional'] as UsageProfile[]).map(profile => (
+          <button
+            key={profile}
+            onClick={() => handlePresetChange(profile)}
+            className="flex-1 px-2 py-1.5 text-xs rounded-lg transition-all"
+            style={{
+              background: usageProfile === profile && !isCustom ? 'var(--ink)' : 'var(--surface)',
+              color: usageProfile === profile && !isCustom ? 'var(--paper)' : 'var(--ink)',
+              border: `1px solid ${usageProfile === profile && !isCustom ? 'var(--ink)' : 'var(--border)'}`,
+            }}
+          >
+            {getUsageLabel(profile)}
+          </button>
+        ))}
+      </div>
+      
+      {/* 24-hour timeline */}
+      <div className="relative">
+        <div className="flex gap-px mb-1">
+          {hourly.map((value, hour) => (
+            <div
+              key={hour}
+              className="flex-1 h-8 rounded-sm cursor-pointer transition-all hover:scale-y-110"
+              style={{
+                background: value === 0 
+                  ? 'var(--border)' 
+                  : value === 0.5 
+                  ? 'var(--accent)'
+                  : 'var(--ink)',
+                opacity: value === 0 ? 0.3 : value === 0.5 ? 0.6 : 1,
+              }}
+              onClick={() => handleHourClick(hour)}
+              title={`${hour}:00 - ${value === 0 ? 'Off' : value === 0.5 ? 'Sometimes' : 'On'}`}
+            />
+          ))}
+        </div>
+        
+        {/* Hour labels */}
+        <div className="flex gap-px text-[9px] num" style={{ color: 'var(--muted)' }}>
+          {Array.from({ length: 24 }, (_, i) => (
+            <div key={i} className="flex-1 text-center">
+              {i % 3 === 0 ? `${i}` : ''}
+            </div>
+          ))}
+        </div>
+        
+        {/* Day/night indicators */}
+        <div className="flex gap-px mt-1 text-[9px]" style={{ color: 'var(--muted)' }}>
+          <div className="flex-1 text-center" style={{ gridColumn: '6 / span 12' }}>
+            ☀ Day
+          </div>
+        </div>
+      </div>
+      
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-2 text-xs">
+        <div className="p-2 rounded-lg" style={{ background: 'var(--paper-warm)' }}>
+          <div style={{ color: 'var(--muted)' }}>Average</div>
+          <div className="num font-medium">{(avgUsage * 100).toFixed(0)}%</div>
+        </div>
+        <div className="p-2 rounded-lg" style={{ background: 'var(--paper-warm)' }}>
+          <div style={{ color: 'var(--muted)' }}>Day</div>
+          <div className="num font-medium">{(dayUsage * 100).toFixed(0)}%</div>
+        </div>
+        <div className="p-2 rounded-lg" style={{ background: 'var(--paper-warm)' }}>
+          <div style={{ color: 'var(--muted)' }}>Night</div>
+          <div className="num font-medium">{(nightUsage * 100).toFixed(0)}%</div>
+        </div>
+      </div>
+      
+      <p className="text-[10px]" style={{ color: 'var(--muted)' }}>
+        Click hours to toggle: off → sometimes → on. Or use presets above.
+      </p>
+    </div>
+  );
+}
