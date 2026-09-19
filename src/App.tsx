@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { I18nProvider, LocaleToggle } from './lib/i18n';
-import { Zap } from 'lucide-react';
+import { Zap, Menu, X } from 'lucide-react';
 
 const HomePage = lazy(() => import('./pages/HomePage').then(m => ({ default: m.HomePage })));
 const WizardPage = lazy(() => import('./pages/WizardPage').then(m => ({ default: m.WizardPage })));
@@ -15,6 +15,7 @@ const ScenarioPage = lazy(() => import('./pages/ScenarioPage').then(m => ({ defa
 function Layout() {
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -24,7 +25,20 @@ function Layout() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    setMobileMenuOpen(false); // Close mobile menu on route change
   }, [location.pathname]);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
 
   const isHome = location.pathname === '/';
 
@@ -69,11 +83,51 @@ function Layout() {
           </div>
           <div className="flex items-center gap-3">
             <LocaleToggle />
-            <Link to="/plan" className="btn-primary text-xs md:text-sm py-2 px-4">
+            <Link to="/plan" className="btn-primary text-xs md:text-sm py-2 px-4 hidden md:inline-flex">
               Open planner
             </Link>
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg transition-colors"
+              style={{ 
+                background: mobileMenuOpen ? 'var(--ink)' : 'transparent',
+                color: mobileMenuOpen ? 'var(--paper)' : 'var(--ink)'
+              }}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </nav>
+
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div 
+            className="md:hidden fixed inset-0 top-[73px] z-40 animate-fade-in"
+            style={{ background: 'var(--paper)' }}
+          >
+            <div className="container-ultra py-6 space-y-2">
+              <MobileNavLink to="/choose" label="Help me choose" icon="🎯" onClick={() => setMobileMenuOpen(false)} />
+              <MobileNavLink to="/plan" label="Planner" icon="📊" onClick={() => setMobileMenuOpen(false)} />
+              <MobileNavLink to="/audit" label="Audit my system" icon="🔍" onClick={() => setMobileMenuOpen(false)} />
+              <MobileNavLink to="/compare" label="Compare configurations" icon="⚖️" onClick={() => setMobileMenuOpen(false)} />
+              <MobileNavLink to="/learn" label="Learning hub" icon="📚" onClick={() => setMobileMenuOpen(false)} />
+              <MobileNavLink to="/assumptions" label="All assumptions" icon="📋" onClick={() => setMobileMenuOpen(false)} />
+              
+              <div className="pt-4 mt-4" style={{ borderTop: '1px solid var(--border)' }}>
+                <Link 
+                  to="/plan" 
+                  className="btn-primary w-full justify-center py-3"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Open planner
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       <main role="main" id="main-content">
@@ -146,6 +200,27 @@ function NavLink({ to, label }: { to: string; label: string }) {
           style={{ background: 'var(--ink)' }}
         />
       )}
+    </Link>
+  );
+}
+
+function MobileNavLink({ to, label, icon, onClick }: { to: string; label: string; icon: string; onClick: () => void }) {
+  const location = useLocation();
+  const active = location.pathname === to;
+  return (
+    <Link
+      to={to}
+      onClick={onClick}
+      className="flex items-center gap-3 p-4 rounded-xl transition-all"
+      style={{ 
+        background: active ? 'var(--paper-warm)' : 'transparent',
+        border: active ? '1px solid var(--border)' : '1px solid transparent'
+      }}
+    >
+      <span className="text-2xl">{icon}</span>
+      <span className="text-base font-medium" style={{ color: active ? 'var(--ink)' : 'var(--muted)' }}>
+        {label}
+      </span>
     </Link>
   );
 }

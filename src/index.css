@@ -381,6 +381,11 @@ input[type="checkbox"] {
   to { opacity: 1; }
 }
 
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes slideInRight {
   from { opacity: 0; transform: translateX(20px); }
   to { opacity: 1; transform: translateX(0); }
@@ -458,6 +463,10 @@ input[type="checkbox"] {
 
 .animate-fade-in {
   animation: fadeIn 0.4s ease both;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-slide-right {
