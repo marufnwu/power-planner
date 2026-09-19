@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
+import { additionalArticles } from '../data/additionalArticles';
 
 interface Article {
   id: string;
@@ -264,8 +265,9 @@ export function LearnPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('All');
   
-  const categories = ['All', ...Array.from(new Set(articles.map(a => a.category)))];
-  const filtered = filter === 'All' ? articles : articles.filter(a => a.category === filter);
+  const allArticles = [...articles, ...additionalArticles];
+  const categories = ['All', ...Array.from(new Set(allArticles.map(a => a.category)))];
+  const filtered = filter === 'All' ? allArticles : allArticles.filter(a => a.category === filter);
 
   return (
     <div className="pt-24 pb-16">

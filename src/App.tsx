@@ -10,6 +10,7 @@ const AssumptionsPage = lazy(() => import('./pages/AssumptionsPage').then(m => (
 const LearnPage = lazy(() => import('./pages/LearnPage').then(m => ({ default: m.LearnPage })));
 const AuditPage = lazy(() => import('./pages/AuditPage').then(m => ({ default: m.AuditPage })));
 const ComparePage = lazy(() => import('./pages/ComparePage').then(m => ({ default: m.ComparePage })));
+const ScenarioPage = lazy(() => import('./pages/ScenarioPage').then(m => ({ default: m.ScenarioPage })));
 
 function Layout() {
   const location = useLocation();
@@ -83,6 +84,7 @@ function Layout() {
             <Route path="/plan" element={<PlannerPage />} />
             <Route path="/audit" element={<AuditPage />} />
             <Route path="/compare" element={<ComparePage />} />
+            <Route path="/scenarios/:slug" element={<ScenarioPage />} />
             <Route path="/assumptions" element={<AssumptionsPage />} />
             <Route path="/learn" element={<LearnPage />} />
           </Routes>
