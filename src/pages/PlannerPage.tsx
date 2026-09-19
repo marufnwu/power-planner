@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Project, LoadItem, SimulationResult, BatteryUnit } from '../types';
 import { createDefaultProject, decodeProject, encodeProject, getShareUrl } from '../lib/state';
-import { runSimulation, calculateContinuousRuntime, calculateSizing, calculateCosts } from '../lib/engine/calculator';
+import { runSimulation, calculateContinuousRuntime, calculateSizing, calculateCosts, interpolateEfficiency } from '../lib/engine/calculator';
 import { applianceTemplates, batteryCatalog, defaultPvPanel } from '../data/catalogs';
 import { generateHourlyProfile, getUsageLabel, getUsageDescription, getScenarioLoad } from '../lib/usageProfiles';
 import { ResultHero } from '../components/ResultHero';
@@ -603,6 +603,63 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
       return { scenario: s, runtime, avgLoadW };
     });
   }, [project]);
+
+  // Outage cycle analysis
+  const cycleAnalysis = useMemo(() => {
+    const outageH = project.grid.outageMinutes / 60;
+    const gridH = project.grid.gridMinutes / 60;
+    
+    // Energy used during outage (at average load)
+    const backupLoads = project.loads.filter(l => l.onBackupCircuit);
+    const avgLoadW = backupLoads.reduce((sum, l) => {
+      const avgHourly = l.hourly.reduce((a, b) => a + b, 0) / 24;
+      return sum + l.qty * l.watts * l.dutyCycle * avgHourly;
+    }, 0);
+    
+    const loadFraction = avgLoadW / project.inverter.ratedW;
+    const efficiency = interpolateEfficiency(project.inverter.efficiencyCurve, loadFraction);
+    const dcW = avgLoadW / efficiency + project.inverter.idleW;
+    const energyUsedWh = dcW * outageH;
+    
+    // Energy available for recharge
+    const vNom = project.bank.unit.nominalV * project.bank.series;
+    const ahTotal = project.bank.unit.ratedAh * project.bank.parallel;
+    const maxChargeByC = project.bank.unit.maxChargeC * ahTotal;
+    const maxChargeByBMS = project.bank.unit.maxChargeA || Infinity;
+    const chargeA = Math.min(project.inverter.gridChargerMaxA, maxChargeByC, maxChargeByBMS);
+    const chargeW = chargeA * vNom * project.bank.unit.chargeEfficiency;
+    
+    // Time to recharge
+    const rechargeTimeH = chargeW > 0 ? energyUsedWh / chargeW : Infinity;
+    const gridUtilization = gridH > 0 ? (rechargeTimeH / gridH) * 100 : 0;
+    
+    // Solar contribution (if present)
+    let solarRechargeWh = 0;
+    if (project.pv) {
+      const pvWp = project.pv.panel.wp * project.pv.series * project.pv.parallelStrings;
+      const psh = project.site.peakSunHours.typ;
+      // Assume solar charges during grid time (simplified)
+      solarRechargeWh = pvWp * psh * project.site.systemDerate * (gridH / 24);
+    }
+    
+    const totalRechargeWh = energyUsedWh - solarRechargeWh;
+    const netRechargeTimeH = totalRechargeWh > 0 && chargeW > 0 ? totalRechargeWh / chargeW : 0;
+    
+    return {
+      outageH,
+      gridH,
+      avgLoadW,
+      energyUsedWh,
+      chargeA,
+      chargeW,
+      rechargeTimeH,
+      gridUtilization,
+      solarRechargeWh,
+      totalRechargeWh,
+      netRechargeTimeH,
+      recovers: rechargeTimeH <= gridH,
+    };
+  }, [project]);
   
   const chartData = result.timeSeries.filter((_, i) => i % 4 === 0).map(t => ({
     time: `${Math.floor(t.t / 60)}h`,
@@ -648,6 +705,112 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
           {scenario === 'night_outage' && 'Night outages: lights essential, fans + TV on. Runtime is usually shorter.'}
           {scenario === 'worst_case' && 'Worst case: all loads running. Use this for conservative sizing.'}
         </p>
+      </div>
+
+      {/* Outage Cycle Analysis */}
+      <div className="p-5 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="eyebrow">Outage cycle balance</div>
+            <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+              Does the battery recover between outages?
+            </p>
+          </div>
+          <div className={`badge ${cycleAnalysis.recovers ? 'badge-success' : 'badge-danger'}`}>
+            {cycleAnalysis.recovers ? '✓ Recovers' : '✗ Does not recover'}
+          </div>
+        </div>
+
+        {/* Visual cycle representation */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="flex-1 h-8 rounded-lg overflow-hidden flex" style={{ border: '1px solid var(--border)' }}>
+              {/* Outage phase */}
+              <div
+                className="flex items-center justify-center text-xs font-medium"
+                style={{
+                  width: `${(cycleAnalysis.outageH / (cycleAnalysis.outageH + cycleAnalysis.gridH)) * 100}%`,
+                  background: 'var(--danger-soft)',
+                  color: 'var(--danger)',
+                }}
+              >
+                <span className="num">{cycleAnalysis.outageH.toFixed(1)}h</span>
+              </div>
+              {/* Grid phase */}
+              <div
+                className="flex items-center justify-center text-xs font-medium"
+                style={{
+                  width: `${(cycleAnalysis.gridH / (cycleAnalysis.outageH + cycleAnalysis.gridH)) * 100}%`,
+                  background: 'var(--success-soft)',
+                  color: 'var(--success)',
+                }}
+              >
+                <span className="num">{cycleAnalysis.gridH.toFixed(1)}h</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-between text-xs" style={{ color: 'var(--muted)' }}>
+            <span>⚡ Outage (discharge)</span>
+            <span>🔌 Grid (recharge)</span>
+          </div>
+        </div>
+
+        {/* Energy balance */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="p-3 rounded-lg" style={{ background: 'var(--danger-soft)' }}>
+            <div className="text-xs mb-1" style={{ color: 'var(--danger)' }}>Energy used during outage</div>
+            <div className="text-lg font-medium num" style={{ color: 'var(--danger)' }}>
+              {(cycleAnalysis.energyUsedWh / 1000).toFixed(2)} kWh
+            </div>
+            <div className="text-xs mt-1 num" style={{ color: 'var(--muted)' }}>
+              {cycleAnalysis.avgLoadW.toFixed(0)}W × {cycleAnalysis.outageH.toFixed(1)}h
+            </div>
+          </div>
+          <div className="p-3 rounded-lg" style={{ background: 'var(--success-soft)' }}>
+            <div className="text-xs mb-1" style={{ color: 'var(--success)' }}>Recharge capacity</div>
+            <div className="text-lg font-medium num" style={{ color: 'var(--success)' }}>
+              {cycleAnalysis.chargeA.toFixed(0)}A · {cycleAnalysis.chargeW.toFixed(0)}W
+            </div>
+            <div className="text-xs mt-1 num" style={{ color: 'var(--muted)' }}>
+              Grid charger + {project.pv ? 'solar' : 'no solar'}
+            </div>
+          </div>
+        </div>
+
+        {/* Recharge time */}
+        <div className="p-3 rounded-lg mb-3" style={{ background: cycleAnalysis.recovers ? 'var(--success-soft)' : 'var(--danger-soft)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs font-medium" style={{ color: cycleAnalysis.recovers ? 'var(--success)' : 'var(--danger)' }}>
+              Time to recharge
+            </div>
+            <div className="text-xs num" style={{ color: 'var(--muted)' }}>
+              {cycleAnalysis.gridUtilization.toFixed(0)}% of grid window used
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <div className="text-2xl font-medium num" style={{ color: cycleAnalysis.recovers ? 'var(--success)' : 'var(--danger)' }}>
+              {cycleAnalysis.rechargeTimeH.toFixed(1)}h
+            </div>
+            <div className="text-sm" style={{ color: 'var(--muted)' }}>
+              needed / {cycleAnalysis.gridH.toFixed(1)}h available
+            </div>
+          </div>
+          {project.pv && cycleAnalysis.solarRechargeWh > 0 && (
+            <div className="text-xs mt-2 num" style={{ color: 'var(--muted)' }}>
+              Solar contributes {(cycleAnalysis.solarRechargeWh / 1000).toFixed(2)} kWh during grid time
+            </div>
+          )}
+        </div>
+
+        {/* Recommendation */}
+        {!cycleAnalysis.recovers && (
+          <div className="p-3 rounded-lg text-sm" style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}>
+            <strong>Problem:</strong> Battery needs {cycleAnalysis.rechargeTimeH.toFixed(1)}h to recharge but only has {cycleAnalysis.gridH.toFixed(1)}h grid time. It will gradually drain over multiple outages.
+            <div className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
+              Solutions: Add solar panels · Increase grid charger current · Reduce load · Increase battery capacity
+            </div>
+          </div>
+        )}
       </div>
 
       {/* SoC Chart */}

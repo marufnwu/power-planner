@@ -11,11 +11,17 @@ export function ResultHero({ project, result, totalLoadW }: ResultHeroProps) {
   const runtime = result.continuousRuntime;
   const finiteRuntime = Number.isFinite(runtime) && runtime < 100;
   
+  // Calculate cycle recovery
+  const outageH = project.grid.outageMinutes / 60;
+  const gridH = project.grid.gridMinutes / 60;
+  const rechargeH = result.closedFormRecharge;
+  const recovers = rechargeH <= gridH;
+  
   // Plain English summary
   let summary = '';
   if (totalLoadW === 0) {
     summary = 'Add loads to see how long your system will run.';
-  } else if (!isFinite) {
+  } else if (!finiteRuntime) {
     summary = 'Your battery can power this load indefinitely at this rate.';
   } else if (runtime < 1) {
     summary = `That's about ${Math.round(runtime * 60)} minutes — barely enough for a short outage.`;
@@ -25,6 +31,15 @@ export function ResultHero({ project, result, totalLoadW }: ResultHeroProps) {
     summary = `Solid runtime for most load-shedding patterns.`;
   } else {
     summary = `Excellent — you could ride out a full day of outages.`;
+  }
+  
+  // Add recovery context
+  if (finiteRuntime && totalLoadW > 0) {
+    if (recovers) {
+      summary += ` Battery recovers in ${rechargeH.toFixed(1)}h (you have ${gridH.toFixed(1)}h grid time).`;
+    } else {
+      summary += ` ⚠️ Battery needs ${rechargeH.toFixed(1)}h to recharge but only has ${gridH.toFixed(1)}h grid time.`;
+    }
   }
 
   return (
@@ -61,24 +76,32 @@ export function ResultHero({ project, result, totalLoadW }: ResultHeroProps) {
         </p>
         
         {/* Recovery indicator */}
-        <div className="mt-6 flex items-center gap-3">
-          <div className={`badge ${
-            result.recoveryStatus === 'yes' ? 'badge-success' :
-            result.recoveryStatus === 'barely' ? 'badge-warning' :
-            'badge-danger'
-          }`}>
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{
-              background: result.recoveryStatus === 'yes' ? 'var(--success)' :
-                         result.recoveryStatus === 'barely' ? 'var(--warning)' :
-                         'var(--danger)'
-            }} />
-            {result.recoveryStatus === 'yes' && 'Recovers between outages'}
-            {result.recoveryStatus === 'barely' && 'Barely recovers'}
-            {result.recoveryStatus === 'no' && 'Does not recover'}
+        <div className="mt-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className={`badge ${
+              result.recoveryStatus === 'yes' ? 'badge-success' :
+              result.recoveryStatus === 'barely' ? 'badge-warning' :
+              'badge-danger'
+            }`}>
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{
+                background: result.recoveryStatus === 'yes' ? 'var(--success)' :
+                           result.recoveryStatus === 'barely' ? 'var(--warning)' :
+                           'var(--danger)'
+              }} />
+              {result.recoveryStatus === 'yes' && 'Recovers between outages'}
+              {result.recoveryStatus === 'barely' && 'Barely recovers'}
+              {result.recoveryStatus === 'no' && 'Does not recover'}
+            </div>
           </div>
-          <span className="text-xs num" style={{ color: 'var(--muted)' }}>
-            recharge {result.closedFormRecharge.toFixed(1)}h · window {project.grid.gridMinutes / 60}h
-          </span>
+          
+          {/* Cycle visualization */}
+          <div className="flex items-center gap-2 text-xs num" style={{ color: 'var(--muted)' }}>
+            <span>⚡ {outageH.toFixed(1)}h outage</span>
+            <span>→</span>
+            <span>🔋 needs {rechargeH.toFixed(1)}h recharge</span>
+            <span>→</span>
+            <span>🔌 {gridH.toFixed(1)}h grid</span>
+          </div>
         </div>
       </div>
     </div>
