@@ -258,22 +258,23 @@ function LoadsStep({ project, updateLoad, addLoad, removeLoad }: {
   const totalVA = project.loads.filter(l => l.onBackupCircuit).reduce((s, l) => s + (l.qty * l.watts * l.dutyCycle) / l.powerFactor, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <div className="flex items-baseline justify-between mb-2">
-          <h2 className="text-xl font-medium tracking-tight">{t('load.yourLoads')}</h2>
-          <div className="flex items-baseline gap-4 num text-sm" style={{ color: 'var(--muted)' }}>
-            <span><span style={{ color: 'var(--ink)' }} className="font-medium">{totalW.toFixed(0)}</span> {t('unit.watts')}</span>
-            <span><span style={{ color: 'var(--ink)' }} className="font-medium">{totalVA.toFixed(0)}</span> VA</span>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold tracking-tight">{t('load.yourLoads')}</h2>
+          <div className="flex items-center gap-3 num text-xs" style={{ color: 'var(--muted)' }}>
+            <span><span style={{ color: 'var(--ink)' }} className="font-semibold">{totalW.toFixed(0)}</span> {t('unit.watts')}</span>
+            <span className="w-px h-3" style={{ background: 'var(--border)' }} />
+            <span><span style={{ color: 'var(--ink)' }} className="font-semibold">{totalVA.toFixed(0)}</span> VA</span>
           </div>
         </div>
-        <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
+        <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>
           {t('load.addLoadsBackup')}
         </p>
       </div>
 
       {/* Load list */}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {project.loads.map(load => (
           <LoadRow key={load.id} load={load} onUpdate={(u) => updateLoad(load.id, u)} onRemove={() => removeLoad(load.id)} />
         ))}
@@ -281,32 +282,32 @@ function LoadsStep({ project, updateLoad, addLoad, removeLoad }: {
 
       {/* Add load */}
       <details className="group">
-        <summary className="cursor-pointer text-sm font-medium flex items-center gap-2 py-3" style={{ color: 'var(--ink)' }}>
-          <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs transition-transform group-open:rotate-45" style={{ background: 'var(--ink)', color: 'var(--paper)' }}>
-            <Plus className="w-3 h-3" />
+        <summary className="cursor-pointer text-xs font-medium flex items-center gap-2 py-2" style={{ color: 'var(--ink)' }}>
+          <span className="w-5 h-5 rounded-full flex items-center justify-center transition-transform group-open:rotate-45" style={{ background: 'var(--ink)', color: 'var(--paper)' }}>
+            <Plus className="w-2.5 h-2.5" />
           </span>
           {t('load.addAppliance')}
         </summary>
-        <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-1.5">
           {applianceTemplates.map(tmpl => (
             <button
               key={tmpl.id}
               onClick={() => addLoad(tmpl.id)}
-              className="p-3 text-left rounded-xl border transition-all hover:scale-[1.02]"
+              className="p-2 text-left rounded-lg border transition-all hover:scale-[1.02]"
               style={{
                 borderColor: tmpl.inverterFriendly === 'avoid' ? '#fecaca' : tmpl.inverterFriendly === 'caution' ? '#fde68a' : 'var(--border)',
                 background: tmpl.inverterFriendly === 'avoid' ? '#fef2f2' : tmpl.inverterFriendly === 'caution' ? '#fffbeb' : 'var(--surface)',
               }}
             >
-              <div className="text-sm font-medium">{tmpl.name}</div>
-              <div className="text-xs mt-0.5 num" style={{ color: 'var(--muted)' }}>{tmpl.watts}W · PF {tmpl.powerFactor}</div>
+              <div className="text-xs font-medium">{tmpl.name}</div>
+              <div className="text-[10px] mt-0.5 num" style={{ color: 'var(--muted)' }}>{tmpl.watts}W · PF {tmpl.powerFactor}</div>
             </button>
           ))}
         </div>
       </details>
 
-      <div className="flex items-start gap-2 p-3 rounded-xl text-xs" style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}>
-        <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+      <div className="flex items-start gap-1.5 p-2 rounded-lg text-[10px]" style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}>
+        <Info className="w-3 h-3 flex-shrink-0 mt-0.5" />
         <span>{t('load.editableDefaults')}</span>
       </div>
     </div>
@@ -318,153 +319,160 @@ function LoadRow({ load, onUpdate, onRemove }: { load: LoadItem; onUpdate: (u: P
   const [expanded, setExpanded] = useState(false);
   
   return (
-    <div className="rounded-xl border transition-all hover:shadow-md" style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
-      {/* Main row - always visible */}
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex-1 min-w-0">
-            <input
-              value={load.label}
-              onChange={e => onUpdate({ label: e.target.value })}
-              className="w-full text-base font-semibold bg-transparent outline-none border-b border-transparent hover:border-[var(--border)] focus:border-[var(--accent)] transition-colors"
-              style={{ color: 'var(--ink)' }}
-              placeholder="Load name"
-            />
-            {load.templateId && (
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs px-2 py-0.5 rounded-full" style={{ 
-                  background: load.onBackupCircuit ? 'var(--success-soft)' : 'var(--muted)',
-                  color: load.onBackupCircuit ? 'var(--success)' : 'var(--paper)'
-                }}>
-                  {load.onBackupCircuit ? 'Backup' : 'Grid Only'}
-                </span>
-                <span className="text-xs" style={{ color: 'var(--muted)' }}>
-                  {load.usageProfile === 'day' ? '☀️ Day' : load.usageProfile === 'night' ? '🌙 Night' : load.usageProfile === 'both' ? '☀️🌙 Both' : '◌ Occasional'}
-                </span>
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="p-2 rounded-lg hover:bg-[var(--paper-warm)] transition-colors"
-              aria-label="Toggle details"
+    <div 
+      className="rounded-lg border transition-all hover:shadow-sm group" 
+      style={{ 
+        borderColor: expanded ? 'var(--accent)' : 'var(--border)', 
+        background: 'var(--surface)',
+        boxShadow: expanded ? '0 2px 8px rgba(255, 77, 28, 0.08)' : 'none'
+      }}
+    >
+      {/* Compact main row */}
+      <div className="px-3 py-2.5 flex items-center gap-3">
+        {/* Name and badges */}
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          <input
+            value={load.label}
+            onChange={e => onUpdate({ label: e.target.value })}
+            className="flex-1 text-sm font-medium bg-transparent outline-none border-b border-transparent hover:border-[var(--border)] focus:border-[var(--accent)] transition-colors min-w-0"
+            style={{ color: 'var(--ink)' }}
+            placeholder="Load name"
+          />
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span 
+              className="text-[10px] px-1.5 py-0.5 rounded font-medium" 
+              style={{ 
+                background: load.onBackupCircuit ? 'var(--success-soft)' : 'var(--border)',
+                color: load.onBackupCircuit ? 'var(--success)' : 'var(--muted)'
+              }}
             >
-              {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-            <button
-              onClick={onRemove}
-              className="p-2 rounded-lg hover:bg-red-50 text-[var(--muted)] hover:text-red-600 transition-colors"
-              aria-label="Remove load"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+              {load.onBackupCircuit ? '⚡' : '🔌'}
+            </span>
+            <span className="text-[10px]" style={{ color: 'var(--muted)' }}>
+              {load.usageProfile === 'day' ? '☀️' : load.usageProfile === 'night' ? '🌙' : load.usageProfile === 'both' ? '⚡' : '◌'}
+            </span>
           </div>
         </div>
 
-        {/* Quick stats */}
-        <div className="grid grid-cols-3 gap-3 mt-3">
-          <div className="text-center p-2 rounded-lg" style={{ background: 'var(--paper-warm)' }}>
-            <div className="text-xs mb-1" style={{ color: 'var(--muted)' }}>{t('load.quantity')}</div>
+        {/* Compact stats */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1">
+            <span className="text-[10px]" style={{ color: 'var(--muted)' }}>×</span>
             <input
               type="number" min={1} max={20} value={load.qty}
               onChange={e => onUpdate({ qty: Math.max(1, +e.target.value) })}
-              className="w-full text-center text-lg font-bold bg-transparent outline-none num"
+              className="w-10 text-center text-sm font-semibold bg-transparent outline-none num"
               style={{ color: 'var(--ink)' }}
             />
           </div>
-          <div className="text-center p-2 rounded-lg" style={{ background: 'var(--paper-warm)' }}>
-            <div className="text-xs mb-1" style={{ color: 'var(--muted)' }}>{t('load.watts')}</div>
+          <div className="w-px h-4" style={{ background: 'var(--border)' }} />
+          <div className="flex items-center gap-1">
             <input
               type="number" min={1} value={load.watts}
               onChange={e => onUpdate({ watts: Math.max(1, +e.target.value) })}
-              className="w-full text-center text-lg font-bold bg-transparent outline-none num"
+              className="w-12 text-center text-sm font-semibold bg-transparent outline-none num"
               style={{ color: 'var(--ink)' }}
             />
+            <span className="text-[10px]" style={{ color: 'var(--muted)' }}>W</span>
           </div>
-          <div className="text-center p-2 rounded-lg" style={{ background: 'var(--paper-warm)' }}>
-            <div className="text-xs mb-1" style={{ color: 'var(--muted)' }}>{t('load.total')}</div>
-            <div className="text-lg font-bold num" style={{ color: 'var(--accent)' }}>
-              {(load.qty * load.watts).toFixed(0)}{t('unit.watts')}
-            </div>
+          <div className="w-px h-4" style={{ background: 'var(--border)' }} />
+          <div className="text-sm font-bold num" style={{ color: 'var(--accent)' }}>
+            {(load.qty * load.watts).toFixed(0)}W
           </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="p-1.5 rounded hover:bg-[var(--paper-warm)] transition-colors"
+            aria-label="Toggle details"
+          >
+            {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+          <button
+            onClick={onRemove}
+            className="p-1.5 rounded hover:bg-red-50 text-[var(--muted)] hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+            aria-label="Remove load"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
-      {/* Expanded details */}
+      {/* Compact expanded section */}
       {expanded && (
-        <div className="border-t px-4 pb-4 pt-3 space-y-4" style={{ borderColor: 'var(--border)' }}>
-          {/* Usage pattern */}
-          <div>
-            <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--muted)' }}>
-              {t('load.usagePattern')}
-            </label>
-            <div className="grid grid-cols-4 gap-2">
+        <div className="border-t px-3 py-2.5 space-y-2.5" style={{ borderColor: 'var(--border)', background: 'var(--paper-warm)' }}>
+          {/* Usage pattern - compact pills */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-medium" style={{ color: 'var(--muted)' }}>{t('load.usagePattern')}:</span>
+            <div className="flex gap-1">
               {(['day', 'night', 'both', 'occasional'] as const).map(profile => (
                 <button
                   key={profile}
                   onClick={() => onUpdate({ usageProfile: profile })}
-                  className="px-3 py-2 rounded-lg text-xs font-medium transition-all"
+                  className="px-2 py-0.5 rounded text-[10px] font-medium transition-all"
                   style={{
-                    background: load.usageProfile === profile ? 'var(--ink)' : 'var(--paper-warm)',
-                    color: load.usageProfile === profile ? 'var(--paper)' : 'var(--ink)',
+                    background: load.usageProfile === profile ? 'var(--ink)' : 'var(--surface)',
+                    color: load.usageProfile === profile ? 'var(--paper)' : 'var(--muted)',
+                    border: `1px solid ${load.usageProfile === profile ? 'var(--ink)' : 'var(--border)'}`
                   }}
                 >
-                  {profile === 'day' && `☀️ ${t('load.day')}`}
-                  {profile === 'night' && `🌙 ${t('load.night')}`}
-                  {profile === 'both' && `☀️🌙 ${t('load.both')}`}
-                  {profile === 'occasional' && `◌ ${t('load.occasional')}`}
+                  {profile === 'day' && '☀️ Day'}
+                  {profile === 'night' && '🌙 Night'}
+                  {profile === 'both' && '⚡ Both'}
+                  {profile === 'occasional' && '◌ Occ'}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Advanced settings */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Compact advanced settings */}
+          <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>
-                {t('load.powerFactor')}
+              <label className="text-[10px] font-medium mb-0.5 block" style={{ color: 'var(--muted)' }}>
+                PF
               </label>
               <input
                 type="number" min={0.1} max={1} step={0.01} value={load.powerFactor}
                 onChange={e => onUpdate({ powerFactor: +e.target.value })}
-                className="input input-mono text-sm"
+                className="input input-mono text-xs py-1"
               />
             </div>
             <div>
-              <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>
-                {t('load.dutyCycle')}
+              <label className="text-[10px] font-medium mb-0.5 block" style={{ color: 'var(--muted)' }}>
+                Duty
               </label>
               <input
                 type="number" min={0} max={1} step={0.01} value={load.dutyCycle}
                 onChange={e => onUpdate({ dutyCycle: +e.target.value })}
-                className="input input-mono text-sm"
+                className="input input-mono text-xs py-1"
               />
+            </div>
+            <div>
+              <label className="text-[10px] font-medium mb-0.5 block" style={{ color: 'var(--muted)' }}>
+                Circuit
+              </label>
+              <button
+                onClick={() => onUpdate({ onBackupCircuit: !load.onBackupCircuit })}
+                className="w-full px-2 py-1 rounded text-xs font-medium transition-all"
+                style={{
+                  background: load.onBackupCircuit ? 'var(--success)' : 'var(--muted)',
+                  color: 'var(--paper)'
+                }}
+              >
+                {load.onBackupCircuit ? '⚡ Backup' : '🔌 Grid'}
+              </button>
             </div>
           </div>
 
-          {/* Backup circuit toggle */}
-          <label className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-[var(--paper-warm)] transition-colors" style={{ border: '1px solid var(--border)' }}>
-            <input
-              type="checkbox"
-              checked={load.onBackupCircuit}
-              onChange={e => onUpdate({ onBackupCircuit: e.target.checked })}
-              className="w-5 h-5 rounded"
-            />
-            <div className="flex-1">
-              <div className="text-sm font-medium">{t('load.backupCircuit')}</div>
-              <div className="text-xs" style={{ color: 'var(--muted)' }}>
-                {load.onBackupCircuit ? t('load.poweredDuringOutages') : t('load.gridPowerOnly')}
-              </div>
-            </div>
-          </label>
-
-          {/* Hourly editor */}
+          {/* Hourly editor - more compact */}
           <HourlyUsageEditor
             hourly={load.hourly}
             usageProfile={load.usageProfile}
             onChange={(hourly, profile) => onUpdate({ hourly, usageProfile: profile })}
             label={load.label}
+            compact={true}
           />
         </div>
       )}
