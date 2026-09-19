@@ -10,6 +10,7 @@ import { SystemTopology } from '../components/SystemTopology';
 import { BatteryVisual } from '../components/BatteryVisual';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 import { HourlyUsageEditor } from '../components/HourlyUsageEditor';
+import { AdvancedSettings, CalculationSettings, defaultSettings } from '../components/AdvancedSettings';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, ReferenceLine } from 'recharts';
 import { Share2, Printer, ChevronDown, ChevronUp, Info, AlertTriangle, Check, Zap, Sun, Moon, Battery as BatteryIcon, Settings2, Plug, RefreshCw, X, Plus, ArrowRight } from 'lucide-react';
 
@@ -28,6 +29,7 @@ export function PlannerPage() {
   const [step, setStep] = useState<PlannerStep>('loads');
   const [showMath, setShowMath] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
+  const [calcSettings, setCalcSettings] = useState<CalculationSettings>(defaultSettings);
 
   // Run simulation
   const result = useMemo(() => runSimulation(project, project.options.assumptionSet), [project]);
@@ -150,7 +152,14 @@ export function PlannerPage() {
               <GridStep project={project} setProject={setProject} />
             )}
             {step === 'system' && (
-              <SystemStep project={project} setProject={setProject} sizing={sizing} result={result} />
+              <SystemStep 
+                project={project} 
+                setProject={setProject} 
+                sizing={sizing} 
+                result={result}
+                calcSettings={calcSettings}
+                setCalcSettings={setCalcSettings}
+              />
             )}
             {step === 'results' && (
               <ResultsDetail result={result} project={project} />
@@ -459,11 +468,13 @@ function GridStep({ project, setProject }: { project: Project; setProject: (fn: 
 // ============================================================
 // SYSTEM STEP
 // ============================================================
-function SystemStep({ project, setProject, sizing, result }: {
+function SystemStep({ project, setProject, sizing, result, calcSettings, setCalcSettings }: {
   project: Project;
   setProject: (fn: (p: Project) => Project) => void;
   sizing: ReturnType<typeof calculateSizing>;
   result: SimulationResult;
+  calcSettings: CalculationSettings;
+  setCalcSettings: (settings: CalculationSettings) => void;
 }) {
   return (
     <div className="space-y-8">
@@ -611,6 +622,9 @@ function SystemStep({ project, setProject, sizing, result }: {
           </div>
         )}
       </div>
+
+      {/* Advanced Calculation Settings */}
+      <AdvancedSettings settings={calcSettings} onChange={setCalcSettings} />
     </div>
   );
 }
