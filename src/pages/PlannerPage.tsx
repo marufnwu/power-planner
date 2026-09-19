@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { Project, LoadItem, SimulationResult, BatteryUnit } from '../types';
 import { createDefaultProject, decodeProject, encodeProject, getShareUrl } from '../lib/state';
 import { runSimulation, calculateContinuousRuntime, calculateSizing, calculateCosts, interpolateEfficiency } from '../lib/engine/calculator';
@@ -107,6 +107,10 @@ export function PlannerPage() {
             <h1 className="text-2xl font-medium tracking-tight">Size your system</h1>
           </div>
           <div className="flex items-center gap-2">
+            <Link to="/compare" className="btn-ghost" title="Compare configurations">
+              <Share2 className="w-4 h-4" />
+              <span className="hidden md:inline">Compare</span>
+            </Link>
             <button onClick={shareUrl} className="btn-ghost" title="Share">
               <Share2 className="w-4 h-4" />
               <span className="hidden md:inline">Share</span>
