@@ -80,30 +80,30 @@ export function BatteryCustomizer({
   const usableEnergy = totalEnergy * selectedBattery.usableDoD;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       {/* Battery Selection */}
-      <div className="rounded-2xl" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
-        <div className="p-5 border-b" style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Battery className="w-5 h-5" style={{ color: 'var(--success)' }} />
-              <h3 className="font-semibold">Select Battery</h3>
+      <div className="rounded-xl md:rounded-2xl" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+        <div className="p-3 md:p-5 border-b" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex items-center justify-between mb-2 md:mb-3 gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Battery className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" style={{ color: 'var(--success)' }} />
+              <h3 className="font-semibold text-sm md:text-base truncate">Select Battery</h3>
             </div>
             <button
               onClick={() => setShowCustomForm(!showCustomForm)}
-              className="btn-ghost text-xs flex items-center gap-1"
+              className="btn-ghost text-[10px] md:text-xs flex items-center gap-1 flex-shrink-0 min-h-[36px] md:min-h-[44px]"
             >
               <Plus className="w-3 h-3" />
-              Custom battery
+              <span className="hidden sm:inline">Custom</span>
             </button>
           </div>
-          <p className="text-xs" style={{ color: 'var(--muted)' }}>
+          <p className="text-[10px] md:text-xs" style={{ color: 'var(--muted)' }}>
             Choose from presets or enter exact specs from your datasheet
           </p>
         </div>
 
         {/* Preset Batteries */}
-        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="p-3 md:p-5 grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
           {[
             { id: 'lifepo4-12v-100ah', label: 'LiFePO4 100Ah', v: 12.8, ah: 100, price: 32000, color: '#10b981' },
             { id: 'lifepo4-12v-150ah', label: 'LiFePO4 150Ah', v: 12.8, ah: 150, price: 48000, color: '#10b981' },
@@ -121,7 +121,7 @@ export function BatteryCustomizer({
                 ].find(b => b.id === batt.id);
                 if (found) onSelect(found as BatteryUnit);
               }}
-              className={`p-4 rounded-xl text-left transition-all ${
+              className={`p-3 md:p-4 rounded-lg md:rounded-xl text-left transition-all min-h-[100px] md:min-h-[120px] ${
                 selectedBattery.id === batt.id 
                   ? 'ring-2' 
                   : 'hover:shadow-md'

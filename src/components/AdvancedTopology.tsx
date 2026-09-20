@@ -38,7 +38,7 @@ export function AdvancedTopology({
   return (
     <div className="relative">
       {/* Main SVG Diagram */}
-      <svg viewBox="0 0 800 400" className="w-full h-auto" style={{ maxHeight: '400px' }}>
+      <svg viewBox="0 0 800 400" className="w-full h-auto" style={{ maxHeight: '280px' }}>
         <defs>
           {/* Gradients */}
           <linearGradient id="solarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
