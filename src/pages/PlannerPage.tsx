@@ -14,14 +14,20 @@ import { HourlyUsageEditor } from '../components/HourlyUsageEditor';
 import { AdvancedSettings, CalculationSettings, defaultSettings } from '../components/AdvancedSettings';
 import { BatteryCustomizer } from '../components/BatteryCustomizer';
 import { useI18n } from '../lib/i18n';
+import { useToast } from '../components/Toast';
+import { ValidatedInput } from '../components/ValidatedInput';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, ReferenceLine } from 'recharts';
 import { Share2, Printer, ChevronDown, ChevronUp, Info, AlertTriangle, Check, Zap, Sun, Moon, Battery as BatteryIcon, Settings2, Plug, RefreshCw, X, Plus, ArrowRight, Trash2 } from 'lucide-react';
 import { DebugPanel } from '../components/DebugPanel';
+import { ProposalGenerator } from '../components/ProposalGenerator';
+import { CompatibilityChecker } from '../components/CompatibilityChecker';
 
 type PlannerStep = 'loads' | 'grid' | 'system' | 'results' | 'costs';
 
 export function PlannerPage() {
   const { t } = useI18n();
+  const toast = useToast();
   const [searchParams] = useSearchParams();
   const [project, setProject] = useState<Project>(() => {
     const encoded = searchParams.get('s');
@@ -33,8 +39,9 @@ export function PlannerPage() {
   });
   const [step, setStep] = useState<PlannerStep>('loads');
   const [showMath, setShowMath] = useState(false);
-  const [showShareToast, setShowShareToast] = useState(false);
   const [calcSettings, setCalcSettings] = useState<CalculationSettings>(defaultSettings);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [loadToDelete, setLoadToDelete] = useState<string | null>(null);
 
   // Apply calcSettings to project before simulation
   const enhancedProject = useMemo(() => {
@@ -163,8 +170,9 @@ export function PlannerPage() {
   const shareUrl = () => {
     const url = getShareUrl(project);
     navigator.clipboard.writeText(url).then(() => {
-      setShowShareToast(true);
-      setTimeout(() => setShowShareToast(false), 2000);
+      toast.success('Configuration URL copied to clipboard!');
+    }).catch(() => {
+      toast.error('Failed to copy URL. Please try again.');
     });
   };
 
@@ -193,7 +201,16 @@ export function PlannerPage() {
   };
 
   const removeLoad = (id: string) => {
-    setProject(p => ({ ...p, loads: p.loads.filter(l => l.id !== id) }));
+    setLoadToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteLoad = () => {
+    if (loadToDelete) {
+      setProject(p => ({ ...p, loads: p.loads.filter(l => l.id !== loadToDelete) }));
+      toast.success('Load removed successfully');
+      setLoadToDelete(null);
+    }
   };
 
   const steps: PlannerStep[] = ['loads', 'grid', 'system', 'results', 'costs'];
@@ -330,19 +347,27 @@ export function PlannerPage() {
         </div>
       </div>
 
-      {/* Share toast */}
-      {showShareToast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-sm animate-fade-up z-50" style={{ background: 'var(--ink)', color: 'var(--paper)' }}>
-          Link copied to clipboard
-        </div>
-      )}
-
       {/* Debug Panel */}
       <DebugPanel
         project={project}
         enhancedProject={enhancedProject}
         result={result}
         calcSettings={calcSettings}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setLoadToDelete(null);
+        }}
+        onConfirm={confirmDeleteLoad}
+        title="Delete Load?"
+        message="This will permanently remove this load from your configuration. This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
       />
     </div>
   );
@@ -482,7 +507,43 @@ function LoadsStep({ project, updateLoad, addLoad, removeLoad }: {
 
 function LoadRow({ load, onUpdate, onRemove }: { load: LoadItem; onUpdate: (u: Partial<LoadItem>) => void; onRemove: () => void }) {
   const { t } = useI18n();
+  const toast = useToast();
   const [expanded, setExpanded] = useState(false);
+  
+  // Validation functions
+  const validateQty = (value: number): string | undefined => {
+    if (value < 1) return 'Quantity must be at least 1';
+    if (value > 20) return 'Quantity cannot exceed 20';
+    return undefined;
+  };
+  
+  const validateWatts = (value: number): string | undefined => {
+    if (value < 1) return 'Watts must be at least 1W';
+    if (value > 10000) return 'Watts cannot exceed 10,000W';
+    if (value > 5000) return 'Very high power - verify this is correct';
+    return undefined;
+  };
+  
+  const handleQtyChange = (value: number) => {
+    const error = validateQty(value);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    onUpdate({ qty: value });
+  };
+  
+  const handleWattsChange = (value: number) => {
+    const error = validateWatts(value);
+    if (error && value > 10000) {
+      toast.error(error);
+      return;
+    }
+    if (error) {
+      toast.warning(error);
+    }
+    onUpdate({ watts: Math.max(1, value) });
+  };
   
   return (
     <div 
@@ -543,7 +604,7 @@ function LoadRow({ load, onUpdate, onRemove }: { load: LoadItem; onUpdate: (u: P
               <span className="text-[10px]" style={{ color: 'var(--muted)' }}>×</span>
               <input
                 type="number" min={1} max={20} value={load.qty}
-                onChange={e => onUpdate({ qty: Math.max(1, +e.target.value) })}
+                onChange={e => handleQtyChange(+e.target.value)}
                 className="flex-1 h-10 text-center text-sm font-semibold bg-[var(--paper-warm)] rounded outline-none num"
                 style={{ color: 'var(--ink)' }}
               />
@@ -551,7 +612,7 @@ function LoadRow({ load, onUpdate, onRemove }: { load: LoadItem; onUpdate: (u: P
             <div className="flex-1 flex items-center gap-1">
               <input
                 type="number" min={1} value={load.watts}
-                onChange={e => onUpdate({ watts: Math.max(1, +e.target.value) })}
+                onChange={e => handleWattsChange(+e.target.value)}
                 className="flex-1 h-10 text-center text-sm font-semibold bg-[var(--paper-warm)] rounded outline-none num"
                 style={{ color: 'var(--ink)' }}
               />
@@ -596,7 +657,7 @@ function LoadRow({ load, onUpdate, onRemove }: { load: LoadItem; onUpdate: (u: P
               <span className="text-[10px]" style={{ color: 'var(--muted)' }}>×</span>
               <input
                 type="number" min={1} max={20} value={load.qty}
-                onChange={e => onUpdate({ qty: Math.max(1, +e.target.value) })}
+                onChange={e => handleQtyChange(+e.target.value)}
                 className="w-12 text-center text-sm font-semibold bg-transparent outline-none num"
                 style={{ color: 'var(--ink)' }}
               />
@@ -605,7 +666,7 @@ function LoadRow({ load, onUpdate, onRemove }: { load: LoadItem; onUpdate: (u: P
             <div className="flex items-center gap-1">
               <input
                 type="number" min={1} value={load.watts}
-                onChange={e => onUpdate({ watts: Math.max(1, +e.target.value) })}
+                onChange={e => handleWattsChange(+e.target.value)}
                 className="w-14 text-center text-sm font-semibold bg-transparent outline-none num"
                 style={{ color: 'var(--ink)' }}
               />
@@ -1374,6 +1435,12 @@ function CostsStep({ costs, result, project }: {
           ))}
         </ul>
       </div>
+
+      {/* Equipment Compatibility Checker */}
+      <CompatibilityChecker project={project} />
+
+      {/* Professional Proposal Generator */}
+      <ProposalGenerator project={project} result={result} />
     </div>
   );
 }

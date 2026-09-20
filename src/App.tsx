@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-do
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { I18nProvider, LocaleToggle } from './lib/i18n';
 import { ThemeToggle } from './components/ThemeToggle';
+import { ToastProvider } from './components/Toast';
 import { Zap, Menu, X } from 'lucide-react';
 
 const HomePage = lazy(() => import('./pages/HomePage').then(m => ({ default: m.HomePage })));
@@ -12,6 +13,7 @@ const LearnPage = lazy(() => import('./pages/LearnPage').then(m => ({ default: m
 const AuditPage = lazy(() => import('./pages/AuditPage').then(m => ({ default: m.AuditPage })));
 const ComparePage = lazy(() => import('./pages/ComparePage').then(m => ({ default: m.ComparePage })));
 const ScenarioPage = lazy(() => import('./pages/ScenarioPage').then(m => ({ default: m.ScenarioPage })));
+const BusinessModePage = lazy(() => import('./pages/BusinessModePage').then(m => ({ default: m.BusinessModePage })));
 
 function Layout() {
   const location = useLocation();
@@ -78,6 +80,7 @@ function Layout() {
             <NavLink to="/choose" label="Choose" />
             <NavLink to="/plan" label="Planner" />
             <NavLink to="/audit" label="Audit" />
+            <NavLink to="/business" label="Business" />
             <NavLink to="/compare" label="Compare" />
             <NavLink to="/learn" label="Learn" />
             <NavLink to="/assumptions" label="Assumptions" />
@@ -116,6 +119,7 @@ function Layout() {
               <MobileNavLink to="/choose" label="Help me choose" icon="🎯" onClick={() => setMobileMenuOpen(false)} />
               <MobileNavLink to="/plan" label="Planner" icon="📊" onClick={() => setMobileMenuOpen(false)} />
               <MobileNavLink to="/audit" label="Audit my system" icon="🔍" onClick={() => setMobileMenuOpen(false)} />
+              <MobileNavLink to="/business" label="Business mode" icon="🏢" onClick={() => setMobileMenuOpen(false)} />
               <MobileNavLink to="/compare" label="Compare configurations" icon="⚖️" onClick={() => setMobileMenuOpen(false)} />
               <MobileNavLink to="/learn" label="Learning hub" icon="📚" onClick={() => setMobileMenuOpen(false)} />
               <MobileNavLink to="/assumptions" label="All assumptions" icon="📋" onClick={() => setMobileMenuOpen(false)} />
@@ -141,6 +145,7 @@ function Layout() {
             <Route path="/choose" element={<WizardPage />} />
             <Route path="/plan" element={<PlannerPage />} />
             <Route path="/audit" element={<AuditPage />} />
+            <Route path="/business" element={<BusinessModePage />} />
             <Route path="/compare" element={<ComparePage />} />
             <Route path="/scenarios/:slug" element={<ScenarioPage />} />
             <Route path="/assumptions" element={<AssumptionsPage />} />
@@ -247,10 +252,12 @@ function PageLoader() {
 
 export default function App() {
   return (
-    <I18nProvider>
-      <BrowserRouter>
-        <Layout />
-      </BrowserRouter>
-    </I18nProvider>
+    <ToastProvider>
+      <I18nProvider>
+        <BrowserRouter>
+          <Layout />
+        </BrowserRouter>
+      </I18nProvider>
+    </ToastProvider>
   );
 }
