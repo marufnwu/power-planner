@@ -157,7 +157,9 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
   const eMin = eNom * (1 - bank.unit.usableDoD) + eNom * reservePct;
   const eMax = eNom;
   
-  let energy = eMax * (options.initialSoC / 100);
+  // Fix initial SoC default (Bug #9)
+  const initialSoC = options.initialSoC ?? 100;
+  let energy = eMax * (initialSoC / 100);
   energy = Math.max(eMin, Math.min(eMax, energy));
   
   const timeSeries: TimeStep[] = [];
@@ -201,7 +203,7 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
     
     // Load
     const load = calculateLoadAtHour(loads, hourOfDay, loadMultiplier);
-    const loadW = load.watts;
+    let loadW = load.watts;
     
     // Solar generation
     let pvW = 0;
@@ -239,6 +241,12 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
     let unservedW = 0;
     let solarUsedW = 0;
     
+    // Bug #7: Handle inverter overload
+    if (loadW > inverter.ratedW) {
+      unservedW += (loadW - inverter.ratedW);
+      loadW = inverter.ratedW;
+    }
+    
     if (!gridAvailable) {
       // Off-grid: PV → load, then battery
       const pvForLoad = Math.min(pvW, loadW > 0 ? dcWatts : 0);
@@ -260,10 +268,10 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
           }
         }
         
-        if (energyAvailable >= energyNeeded) {
+        if (energyAvailable >= energyNeeded && dischargeW > 0) {
           energy -= energyNeeded;
           battFlowW = -dischargeW;
-        } else {
+        } else if (dischargeW > 0) {
           // Can't serve all load
           const servedFraction = energyAvailable / energyNeeded;
           energy = eMin;
@@ -273,22 +281,29 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
       } else {
         // Surplus solar → charge battery
         const surplusW = Math.abs(remainingLoad);
-        const chargeLimitW = getChargeLimitW(bank, inverter, energy, eMax, gridAvailable);
-        const chargeW = Math.min(surplusW, chargeLimitW);
+        const chargeLimitW = getChargeLimitW(bank, inverter, energy, eMax, gridAvailable, pvW > 0);
+        
+        // Enforce MPPT charge current limit
+        let chargeW = Math.min(surplusW, chargeLimitW);
+        if (inverter.mppt && inverter.mppt.maxChargeA) {
+          const mpptLimitW = inverter.mppt.maxChargeA * vNom;
+          chargeW = Math.min(chargeW, mpptLimitW);
+        }
+        
         const energyAdded = chargeW * bank.unit.chargeEfficiency * dtHours;
         energy = Math.min(eMax, energy + energyAdded);
         battFlowW = chargeW;
         solarUsedW += chargeW;
       }
     } else {
-      // Grid available
+      // Grid available - implement proper operating modes
       if (options.mode === 'ips') {
-        // Load from grid (bypass), charge battery
+        // IPS mode: Grid powers load directly (bypass), charges battery
         gridW = loadW;
         totalGridWh += loadW * dtHours;
         
         // Charge battery at max rate
-        const chargeLimitW = getChargeLimitW(bank, inverter, energy, eMax, true);
+        const chargeLimitW = getChargeLimitW(bank, inverter, energy, eMax, true, pvW > 0);
         let chargeW = chargeLimitW;
         
         // Enforce total charge current limit (grid + solar)
@@ -314,21 +329,116 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
             solarUsedW += pvChargeW;
           }
         }
-      } else {
-        // PV → load first, then grid or battery
+      } else if (options.mode === 'utility_first') {
+        // Utility first: Grid powers load, solar charges battery
+        gridW = loadW;
+        totalGridWh += loadW * dtHours;
+        
+        // Solar charges battery
+        if (pvW > 0) {
+          const chargeLimitW = getChargeLimitW(bank, inverter, energy, eMax, true, true);
+          let chargeW = Math.min(pvW, chargeLimitW);
+          
+          // Enforce MPPT limit
+          if (inverter.mppt && inverter.mppt.maxChargeA) {
+            const mpptLimitW = inverter.mppt.maxChargeA * vNom;
+            chargeW = Math.min(chargeW, mpptLimitW);
+          }
+          
+          const energyAdded = chargeW * bank.unit.chargeEfficiency * dtHours;
+          energy = Math.min(eMax, energy + energyAdded);
+          battFlowW = chargeW;
+          solarUsedW += chargeW;
+        }
+      } else if (options.mode === 'solar_first') {
+        // Solar first: Solar → load → grid → battery
         const pvForLoad = Math.min(pvW, dcWatts);
         solarUsedW = pvForLoad;
-        gridW = (dcWatts - pvForLoad) * efficiency; // grid supplies AC equivalent
         
-        if (gridW > 0) {
+        // Grid supplies remaining load (AC power)
+        const remainingLoadDC = dcWatts - pvForLoad;
+        if (remainingLoadDC > 0) {
+          gridW = remainingLoadDC / efficiency; // Grid AC power needed
           totalGridWh += gridW * dtHours;
         }
         
         // Surplus PV charges battery
         const surplusPv = pvW - pvForLoad;
         if (surplusPv > 0) {
-          const chargeLimitW = getChargeLimitW(bank, inverter, energy, eMax, true);
-          const chargeW = Math.min(surplusPv, chargeLimitW);
+          const chargeLimitW = getChargeLimitW(bank, inverter, energy, eMax, true, true);
+          let chargeW = Math.min(surplusPv, chargeLimitW);
+          
+          // Enforce MPPT limit
+          if (inverter.mppt && inverter.mppt.maxChargeA) {
+            const mpptLimitW = inverter.mppt.maxChargeA * vNom;
+            chargeW = Math.min(chargeW, mpptLimitW);
+          }
+          
+          const energyAdded = chargeW * bank.unit.chargeEfficiency * dtHours;
+          energy = Math.min(eMax, energy + energyAdded);
+          battFlowW = chargeW;
+          solarUsedW += chargeW;
+        }
+      } else if (options.mode === 'sbu') {
+        // SBU (Solar-Battery-Utility): Solar → Battery → Utility
+        const soc = energy / eNom;
+        const sbuSwitchToGridSoC = 0.20; // Switch to grid at 20% SoC
+        const sbuReturnSoC = 0.80; // Return to battery at 80% SoC
+        
+        // Solar powers load first
+        const pvForLoad = Math.min(pvW, dcWatts);
+        solarUsedW = pvForLoad;
+        const remainingLoadDC = dcWatts - pvForLoad;
+        
+        if (remainingLoadDC > 0) {
+          // Check if we should use battery or grid
+          if (soc > sbuSwitchToGridSoC) {
+            // Use battery
+            const energyNeeded = remainingLoadDC * dtHours;
+            const energyAvailable = energy - eMin;
+            
+            if (energyAvailable >= energyNeeded) {
+              energy -= energyNeeded;
+              battFlowW = -remainingLoadDC;
+            } else {
+              const servedFraction = energyAvailable / energyNeeded;
+              energy = eMin;
+              unservedW += remainingLoadDC * (1 - servedFraction) * efficiency;
+              battFlowW = -remainingLoadDC * servedFraction;
+            }
+          } else {
+            // Use grid and charge battery
+            gridW = remainingLoadDC / efficiency;
+            totalGridWh += gridW * dtHours;
+            
+            // Charge battery if below return SoC
+            if (soc < sbuReturnSoC && pvW > pvForLoad) {
+              const surplusPv = pvW - pvForLoad;
+              const chargeLimitW = getChargeLimitW(bank, inverter, energy, eMax, true, true);
+              let chargeW = Math.min(surplusPv, chargeLimitW);
+              
+              if (inverter.mppt && inverter.mppt.maxChargeA) {
+                const mpptLimitW = inverter.mppt.maxChargeA * vNom;
+                chargeW = Math.min(chargeW, mpptLimitW);
+              }
+              
+              const energyAdded = chargeW * bank.unit.chargeEfficiency * dtHours;
+              energy = Math.min(eMax, energy + energyAdded);
+              battFlowW = chargeW;
+              solarUsedW += chargeW;
+            }
+          }
+        } else {
+          // Surplus solar charges battery
+          const surplusPv = Math.abs(remainingLoadDC);
+          const chargeLimitW = getChargeLimitW(bank, inverter, energy, eMax, true, true);
+          let chargeW = Math.min(surplusPv, chargeLimitW);
+          
+          if (inverter.mppt && inverter.mppt.maxChargeA) {
+            const mpptLimitW = inverter.mppt.maxChargeA * vNom;
+            chargeW = Math.min(chargeW, mpptLimitW);
+          }
+          
           const energyAdded = chargeW * bank.unit.chargeEfficiency * dtHours;
           energy = Math.min(eMax, energy + energyAdded);
           battFlowW = chargeW;
@@ -405,10 +515,13 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
   };
 }
 
-function getChargeLimitW(bank: BatteryBank, inverter: Inverter, currentEnergy: number, eMax: number, gridAvailable: boolean): number {
+function getChargeLimitW(bank: BatteryBank, inverter: Inverter, currentEnergy: number, eMax: number, gridAvailable: boolean, pvAvailable: boolean = false): number {
   const vNom = bank.unit.nominalV * bank.series;
   const ahTotal = bank.unit.ratedAh * bank.parallel;
   const soc = currentEnergy / (vNom * ahTotal);
+  
+  // Stop charging when battery is full
+  if (soc >= 0.99) return 0;
   
   // Taper
   let taper = 1;
@@ -420,7 +533,11 @@ function getChargeLimitW(bank: BatteryBank, inverter: Inverter, currentEnergy: n
   
   const maxChargeByC = bank.unit.maxChargeC * ahTotal * taper;
   const maxChargeByBMS = bank.unit.maxChargeA ? bank.unit.maxChargeA * taper : Infinity;
-  const chargerLimit = gridAvailable ? inverter.gridChargerMaxA : 0;
+  
+  // Allow solar to charge battery even when grid is down
+  const chargerLimit = gridAvailable 
+    ? inverter.gridChargerMaxA 
+    : (pvAvailable && inverter.mppt ? inverter.mppt.maxChargeA : 0);
   
   const chargeA = Math.min(chargerLimit, maxChargeByC, maxChargeByBMS);
   return chargeA * vNom;
