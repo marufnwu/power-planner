@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-do
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { I18nProvider, LocaleToggle } from './lib/i18n';
 import { ThemeToggle } from './components/ThemeToggle';
+import { ToastProvider } from './components/Toast';
 import { Zap, Menu, X } from 'lucide-react';
 
 const HomePage = lazy(() => import('./pages/HomePage').then(m => ({ default: m.HomePage })));
@@ -247,10 +248,12 @@ function PageLoader() {
 
 export default function App() {
   return (
-    <I18nProvider>
-      <BrowserRouter>
-        <Layout />
-      </BrowserRouter>
-    </I18nProvider>
+    <ToastProvider>
+      <I18nProvider>
+        <BrowserRouter>
+          <Layout />
+        </BrowserRouter>
+      </I18nProvider>
+    </ToastProvider>
   );
 }
