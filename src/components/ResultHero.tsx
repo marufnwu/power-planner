@@ -1,14 +1,17 @@
 import { AnimatedNumber } from './AnimatedNumber';
 import { Project, SimulationResult } from '../types';
-import { Zap, Battery, Plug, ArrowRight } from 'lucide-react';
+import { Zap, Battery, Plug, ArrowRight, Info } from 'lucide-react';
+
+import { CalculationSettings } from './AdvancedSettings';
 
 interface ResultHeroProps {
   project: Project;
   result: SimulationResult;
   totalLoadW: number;
+  calcSettings?: CalculationSettings;
 }
 
-export function ResultHero({ project, result, totalLoadW }: ResultHeroProps) {
+export function ResultHero({ project, result, totalLoadW, calcSettings }: ResultHeroProps) {
   const runtime = result.continuousRuntime;
   const finiteRuntime = Number.isFinite(runtime) && runtime < 100;
   
@@ -17,6 +20,15 @@ export function ResultHero({ project, result, totalLoadW }: ResultHeroProps) {
   const gridH = project.grid.gridMinutes / 60;
   const rechargeH = result.closedFormRecharge;
   const recovers = rechargeH <= gridH;
+  
+  // Calculate correction factors being applied
+  const corrections = calcSettings ? {
+    tempFactor: calcSettings.batteryRoomTempC !== 25 ? ((25 - calcSettings.batteryRoomTempC) * 0.5).toFixed(1) : '0',
+    agingFactor: calcSettings.batteryAgeYears > 0 ? (calcSettings.batteryAgeYears * 2).toFixed(0) : '0',
+    healthFactor: calcSettings.batteryHealthPct !== 100 ? (100 - calcSettings.batteryHealthPct).toFixed(0) : '0',
+    effFactor: calcSettings.inverterEfficiencyPct !== 90 ? ((90 - calcSettings.inverterEfficiencyPct) * 1).toFixed(1) : '0',
+    lossFactor: (calcSettings.wiringLossPct + calcSettings.soilingLossPct + calcSettings.mismatchLossPct).toFixed(1),
+  } : null;
   
   // Plain English summary
   let summary = '';
@@ -75,6 +87,48 @@ export function ResultHero({ project, result, totalLoadW }: ResultHeroProps) {
         <p className="text-xs md:text-sm italic leading-relaxed" style={{ color: 'var(--muted)', fontFamily: 'var(--font-display)' }}>
           {summary}
         </p>
+        
+        {/* Corrections applied indicator */}
+        {corrections && (corrections.tempFactor !== '0' || corrections.agingFactor !== '0' || corrections.healthFactor !== '0' || corrections.effFactor !== '0' || corrections.lossFactor !== '0.0') && (
+          <div className="mt-3 p-2 md:p-3 rounded-lg text-[10px] md:text-xs" style={{ background: 'var(--info-soft)', border: '1px solid var(--info)' }}>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Info className="w-3 h-3" style={{ color: 'var(--info)' }} />
+              <span className="font-semibold" style={{ color: 'var(--info)' }}>Real-world corrections applied:</span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1" style={{ color: 'var(--ink)' }}>
+              {corrections.tempFactor !== '0' && (
+                <div className="flex items-center gap-1">
+                  <span style={{ color: 'var(--muted)' }}>Temperature:</span>
+                  <span className="num font-medium">{corrections.tempFactor}%</span>
+                </div>
+              )}
+              {corrections.agingFactor !== '0' && (
+                <div className="flex items-center gap-1">
+                  <span style={{ color: 'var(--muted)' }}>Aging:</span>
+                  <span className="num font-medium">-{corrections.agingFactor}%</span>
+                </div>
+              )}
+              {corrections.healthFactor !== '0' && (
+                <div className="flex items-center gap-1">
+                  <span style={{ color: 'var(--muted)' }}>Health:</span>
+                  <span className="num font-medium">-{corrections.healthFactor}%</span>
+                </div>
+              )}
+              {corrections.effFactor !== '0' && (
+                <div className="flex items-center gap-1">
+                  <span style={{ color: 'var(--muted)' }}>Efficiency:</span>
+                  <span className="num font-medium">{corrections.effFactor}%</span>
+                </div>
+              )}
+              {corrections.lossFactor !== '0.0' && (
+                <div className="flex items-center gap-1">
+                  <span style={{ color: 'var(--muted)' }}>Losses:</span>
+                  <span className="num font-medium">-{corrections.lossFactor}%</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         
         {/* Recovery indicator */}
         <div className="mt-3 md:mt-6">

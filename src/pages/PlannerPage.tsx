@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { Project, LoadItem, SimulationResult, BatteryUnit } from '../types';
 import { createDefaultProject, decodeProject, encodeProject, getShareUrl } from '../lib/state';
 import { runSimulation, calculateContinuousRuntime, calculateSizing, calculateCosts, interpolateEfficiency } from '../lib/engine/calculator';
+import { EnhancedCalculator } from '../lib/enhanced-calculator';
 import { applianceTemplates, batteryCatalog, defaultPvPanel } from '../data/catalogs';
 import { generateHourlyProfile, getUsageLabel, getUsageDescription, getScenarioLoad } from '../lib/usageProfiles';
 import { ResultHero } from '../components/ResultHero';
@@ -34,17 +35,113 @@ export function PlannerPage() {
   const [showShareToast, setShowShareToast] = useState(false);
   const [calcSettings, setCalcSettings] = useState<CalculationSettings>(defaultSettings);
 
-  // Run simulation
-  const result = useMemo(() => runSimulation(project, project.options.assumptionSet), [project]);
-  const sizing = useMemo(() => calculateSizing(project), [project]);
-  const costs = useMemo(() => calculateCosts(project, result), [project, result]);
+  // Apply calcSettings to project before simulation
+  const enhancedProject = useMemo(() => {
+    const p = JSON.parse(JSON.stringify(project)) as Project;
+    
+    // Apply temperature corrections
+    const batteryTempCorrection = EnhancedCalculator.batteryCapacityTempCorrection(
+      p.bank.unit.chemistry,
+      calcSettings.batteryRoomTempC,
+      p.bank.unit.ratedAh
+    );
+    const tempFactor = batteryTempCorrection / p.bank.unit.ratedAh;
+    
+    // Apply battery aging
+    const agedCapacity = EnhancedCalculator.batteryCalendarAging(
+      p.bank.unit.chemistry,
+      calcSettings.batteryAgeYears,
+      p.bank.unit.ratedAh
+    );
+    const agingFactor = agedCapacity / p.bank.unit.ratedAh;
+    
+    // Apply battery health
+    const healthFactor = calcSettings.batteryHealthPct / 100;
+    
+    // Apply combined battery capacity correction
+    p.bank.unit = {
+      ...p.bank.unit,
+      ratedAh: p.bank.unit.ratedAh * tempFactor * agingFactor * healthFactor,
+    };
+    
+    // Apply inverter efficiency adjustment
+    const effFactor = calcSettings.inverterEfficiencyPct / 100;
+    p.inverter = {
+      ...p.inverter,
+      efficiencyCurve: p.inverter.efficiencyCurve.map(point => ({
+        ...point,
+        eff: Math.min(0.99, point.eff * effFactor),
+      })),
+    };
+    
+    // Apply charge/discharge efficiency
+    p.bank.unit = {
+      ...p.bank.unit,
+      chargeEfficiency: calcSettings.batteryChargeEfficiencyPct / 100,
+    };
+    
+    // Apply solar temperature correction if solar exists
+    if (p.pv) {
+      const cellTemp = EnhancedCalculator.estimateCellTemperature(
+        calcSettings.ambientTempC,
+        800, // Standard irradiance
+        calcSettings.noctC
+      );
+      const solarTempCorrection = EnhancedCalculator.solarPanelTempCorrection(
+        p.pv.panel.tempCoeffPmaxPctPerC,
+        cellTemp,
+        p.pv.panel.wp
+      );
+      const solarTempFactor = solarTempCorrection / p.pv.panel.wp;
+      
+      p.pv = {
+        ...p.pv,
+        panel: {
+          ...p.pv.panel,
+          wp: p.pv.panel.wp * solarTempFactor,
+        },
+      };
+      
+      // Apply panel degradation
+      const yearsOld = 0; // Could track installation date
+      const degradationFactor = 1 - (calcSettings.panelDegradationPctPerYear / 100 * yearsOld);
+      p.pv.panel.wp = p.pv.panel.wp * degradationFactor;
+    }
+    
+    // Apply system losses to load calculation
+    const totalLossFactor = (
+      (1 - calcSettings.wiringLossPct / 100) *
+      (1 - calcSettings.soilingLossPct / 100) *
+      (1 - calcSettings.mismatchLossPct / 100)
+    );
+    
+    // Apply diversity factor to loads
+    p.loads = p.loads.map(load => ({
+      ...load,
+      watts: load.watts * calcSettings.diversityFactor,
+    }));
+    
+    // Apply safety margins to inverter sizing
+    p.inverter = {
+      ...p.inverter,
+      ratedVA: p.inverter.ratedVA * (1 + calcSettings.inverterSafetyMarginPct / 100),
+      ratedW: p.inverter.ratedW * (1 + calcSettings.inverterSafetyMarginPct / 100),
+    };
+    
+    return p;
+  }, [project, calcSettings]);
+  
+  // Run simulation with enhanced project
+  const result = useMemo(() => runSimulation(enhancedProject, enhancedProject.options.assumptionSet), [enhancedProject]);
+  const sizing = useMemo(() => calculateSizing(enhancedProject), [enhancedProject]);
+  const costs = useMemo(() => calculateCosts(enhancedProject, result), [enhancedProject, result]);
 
-  // Derived values for topology
-  const totalLoadW = project.loads.filter(l => l.onBackupCircuit).reduce((s, l) => {
+  // Derived values for topology (using enhanced project)
+  const totalLoadW = enhancedProject.loads.filter(l => l.onBackupCircuit).reduce((s, l) => {
     const avgHourly = l.hourly.reduce((a, b) => a + b, 0) / 24;
     return s + l.qty * l.watts * l.dutyCycle * avgHourly;
   }, 0);
-  const solarW = project.pv ? project.pv.panel.wp * project.pv.series * project.pv.parallelStrings * 0.5 : 0;
+  const solarW = enhancedProject.pv ? enhancedProject.pv.panel.wp * enhancedProject.pv.series * enhancedProject.pv.parallelStrings * 0.5 : 0;
   const batterySoC = result.timeSeries.length > 0 ? result.timeSeries[result.timeSeries.length - 1].soc : 100;
   const batteryCharging = result.timeSeries.length > 0 ? result.timeSeries[result.timeSeries.length - 1].battW > 0 : false;
 
@@ -148,7 +245,7 @@ export function PlannerPage() {
         <div className="lg:hidden mb-4 md:mb-6">
           <MobileResultSummary 
             result={result} 
-            project={project} 
+            project={enhancedProject} 
             totalLoadW={totalLoadW}
             solarW={solarW}
             batteryCharging={batteryCharging}
@@ -194,7 +291,7 @@ export function PlannerPage() {
           <div className="hidden lg:block lg:col-span-5">
             <div className="lg:sticky lg:top-24 space-y-6">
               <div className="p-8 rounded-3xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                <ResultHero project={project} result={result} totalLoadW={totalLoadW} />
+                <ResultHero project={enhancedProject} result={result} totalLoadW={totalLoadW} calcSettings={calcSettings} />
               </div>
               <div className="p-4 rounded-3xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                 <div className="px-2 pt-2 pb-3 flex items-center justify-between">
@@ -211,12 +308,12 @@ export function PlannerPage() {
                   loadW={totalLoadW}
                   batteryCharging={batteryCharging}
                   inverterOn={totalLoadW > 0}
-                  hasSolar={!!project.pv}
-                  batteryAh={project.bank.unit.ratedAh * project.bank.parallel}
-                  inverterVA={project.inverter.ratedVA}
-                  inverterEfficiency={90}
-                  batteryVoltage={project.bank.unit.nominalV * project.bank.series}
-                  gridPower={result.gridWh / (project.options.simulationDays * 24)}
+                  hasSolar={!!enhancedProject.pv}
+                  batteryAh={enhancedProject.bank.unit.ratedAh * enhancedProject.bank.parallel}
+                  inverterVA={enhancedProject.inverter.ratedVA}
+                  inverterEfficiency={calcSettings.inverterEfficiencyPct}
+                  batteryVoltage={enhancedProject.bank.unit.nominalV * enhancedProject.bank.series}
+                  gridPower={result.gridWh / (enhancedProject.options.simulationDays * 24)}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
