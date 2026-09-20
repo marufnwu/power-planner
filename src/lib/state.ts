@@ -32,7 +32,7 @@ export function decodeProject(encoded: string): Project | null {
 function migrateProject(data: Record<string, unknown>): Project {
   // Ensure all required fields exist with defaults
   const project = data as unknown as Project;
-  if (!project.v) project.v = 1;
+  if (!project.v) project.v = 2;  // M1: Default to v2
   if (!project.locale) project.locale = 'en';
   if (!project.currency) project.currency = 'BDT';
   if (!project.grid) project.grid = { ...defaultGridSchedule };
@@ -47,6 +47,10 @@ function migrateProject(data: Record<string, unknown>): Project {
       simulationDays: 3,
     };
   }
+  // M1: Add calibration field if missing
+  if (project.calibration === undefined) {
+    project.calibration = null;
+  }
   return project;
 }
 
@@ -57,7 +61,7 @@ export function createDefaultProject(): Project {
   const defaultBattery = batteryCatalog[0]; // LiFePO4 100Ah
   
   return {
-    v: 1,
+    v: 2,  // M1: Updated to v2
     locale: 'en',
     currency: 'BDT',
     loads: [

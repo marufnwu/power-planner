@@ -259,50 +259,114 @@ function isGridAvailable(
 
 /**
  * Priority-based load shedding
- * Fix #1: Actually implement priority shedding
+ * M0-P5: Now respects usageProfile, priority, and onBackupCircuit
  */
 function shedLoadsByPriority(
   loads: LoadItem[],
   hour: number,
-  availablePower: number,
+  availablePowerDC: number,
   efficiency: number,
   loadMultiplier: number
-): { servedWatts: number; unservedWatts: number; shedLoads: string[] } {
+): { servedWattsDC: number; unservedWattsAC: number; shedLoads: string[] } {
   // Sort by priority (1 = highest, 3 = lowest)
   const sortedLoads = [...loads]
     .filter(l => l.onBackupCircuit)
     .sort((a, b) => a.priority - b.priority);
   
-  let servedWatts = 0;
-  let unservedWatts = 0;
+  let servedWattsDC = 0;
+  let unservedWattsAC = 0;
   const shedLoads: string[] = [];
   const h = Math.floor(hour) % 24;
   
   for (const load of sortedLoads) {
-    const hourFraction = load.hourly[h] || 0;
-    const loadWatts = r2(load.qty * load.watts * load.dutyCycle * hourFraction * loadMultiplier);
-    const loadDC = r2(loadWatts / efficiency);
+    // M0-P5: Respect usageProfile
+    let hourFraction = load.hourly[h] || 0;
     
-    if (servedWatts + loadDC <= availablePower) {
-      servedWatts += loadDC;
+    // If usageProfile is set and hourly is default, use profile
+    if (load.usageProfile && load.hourly.every(v => Math.abs(v - 0.5) < 0.01)) {
+      hourFraction = getUsageFraction(load.usageProfile, h);
+    }
+    
+    const loadWattsAC = r2(load.qty * load.watts * load.dutyCycle * hourFraction * loadMultiplier);
+    const loadWattsDC = r2(loadWattsAC / efficiency);
+    
+    if (servedWattsDC + loadWattsDC <= availablePowerDC) {
+      servedWattsDC += loadWattsDC;
     } else {
       // Can't serve this load
-      const remaining = availablePower - servedWatts;
+      const remaining = availablePowerDC - servedWattsDC;
       if (remaining > 0) {
         // Partial service
-        const fraction = remaining / loadDC;
-        servedWatts += remaining;
-        unservedWatts += r2(loadDC * (1 - fraction));
+        const fraction = remaining / loadWattsDC;
+        servedWattsDC += remaining;
+        // M0-P1: Convert unserved from DC to AC (load-side) watts
+        unservedWattsAC += r2(loadWattsDC * (1 - fraction) * efficiency);
         shedLoads.push(`${load.label} (${r2(fraction * 100)}%)`);
       } else {
-        // No service
-        unservedWatts += loadDC;
+        // No service - M0-P1: Convert DC to AC
+        unservedWattsAC += r2(loadWattsDC * efficiency);
         shedLoads.push(load.label);
       }
     }
   }
   
-  return { servedWatts: r2(servedWatts), unservedWatts: r2(unservedWatts), shedLoads };
+  return { servedWattsDC: r2(servedWattsDC), unservedWattsAC: r2(unservedWattsAC), shedLoads };
+}
+
+/**
+ * M0-P5: Helper for usageProfile fractions
+ */
+function getUsageFraction(profile: string, hour: number): number {
+  switch (profile) {
+    case 'day': return (hour >= 6 && hour < 18) ? 0.7 : 0.1;
+    case 'night': return (hour >= 18 || hour < 6) ? 0.8 : 0.1;
+    case 'both': return 0.5;
+    case 'occasional': return 0.15;
+    default: return 0.5;
+  }
+}
+
+/**
+ * M0: Single choke point for battery discharge calculation
+ * All discharge paths must go through this function.
+ * M1: This is where calibration plugs in.
+ * 
+ * @param loadW AC load in watts (load-side)
+ * @param efficiency Inverter efficiency at this load
+ * @param idleW Inverter idle consumption in watts
+ * @param dischargeEff Battery discharge efficiency (0-1)
+ * @param calibration Optional calibration profile
+ * @returns Battery-side power in watts (DC)
+ */
+function batteryDrawW(
+  loadW: number,
+  efficiency: number,
+  idleW: number,
+  dischargeEff: number,
+  calibration?: { mode: string; systemLossFactor?: number; lossModel?: { a: number; b: number } } | null
+): number {
+  // M1: Apply calibration if active
+  if (calibration) {
+    if (calibration.mode === 'lossModel' && calibration.lossModel) {
+      // Mode B: P_batt = a * P_load + b
+      // This bypasses efficiency curve, idleW, and discharge efficiency
+      return r2(calibration.lossModel.a * loadW + calibration.lossModel.b);
+    }
+    
+    if (calibration.mode === 'systemLoss' && calibration.systemLossFactor) {
+      // Mode A: Multiply final result by k
+      const dcPowerWithIdle = loadW / efficiency + idleW;
+      const batteryPower = dcPowerWithIdle / dischargeEff;
+      return r2(batteryPower * calibration.systemLossFactor);
+    }
+  }
+  
+  // M0-P4: Documented loss model (uncalibrated)
+  // idleW is ADDITIVE to the efficiency curve (not included in curve)
+  // Formula: P_batt = (P_load / η + P_idle) / η_discharge
+  const dcPowerWithIdle = loadW / efficiency + idleW;
+  const batteryPower = dcPowerWithIdle / dischargeEff;
+  return r2(batteryPower);
 }
 
 // ============================================================
@@ -373,6 +437,9 @@ export function runSimulation(
     const isWarmup = day < warmupDays;
     const simDay = day - warmupDays;
     
+    // M0-P3: Record state at START of step (before calculations)
+    const socAtStart = r2((energy / eNom) * 100);
+    
     // Fix #12 & #15: Grid availability
     const gridAvail = isGridAvailable(grid, minuteOfDay);
     
@@ -415,7 +482,7 @@ export function runSimulation(
       const remainingDC = r2(dcWatts - pvForLoad);
       
       if (remainingDC > 0) {
-        // Fix #1: Priority-based load shedding
+        // M0: Priority-based load shedding
         const shedding = shedLoadsByPriority(
           activeLoads, 
           hourOfDay, 
@@ -424,24 +491,32 @@ export function runSimulation(
           loadMultiplier
         );
         
-        const energyNeeded = r2(shedding.servedWatts * dtHours);
+        // M0: Use batteryDrawW choke point
+        const dischargeEff = bank.unit.chargeEfficiency;
+        const battDrawW = batteryDrawW(
+          shedding.servedWattsDC / efficiency, 
+          efficiency, 
+          idleW, 
+          dischargeEff,
+          project.calibration?.active ? project.calibration.profile : null
+        );
+        
+        const energyNeeded = r2(battDrawW * dtHours);
         const energyAvailable = r2(energy - eMin);
         
-        // Fix #4: Apply discharge efficiency
-        const dischargeEff = bank.unit.chargeEfficiency;
-        
         if (energyAvailable >= energyNeeded) {
-          const actualDischarge = r2(energyNeeded / dischargeEff);
-          energy = r2(energy - actualDischarge);
-          battFlowW = -r2(shedding.servedWatts / dischargeEff);
-          totalDischargeWh += r2(actualDischarge);
+          energy = r2(energy - energyNeeded);
+          battFlowW = -battDrawW;
+          totalDischargeWh += r2(energyNeeded);
         } else {
-          // Can't serve all
+          // M0-P2: Clamp energy FIRST, then calculate battFlowW
           const servedFraction = energyAvailable / energyNeeded;
+          const energyBefore = energy;
           energy = eMin;
-          // Fix #10: unservedW in load-side watts
-          unservedW = r2(shedding.servedWatts * (1 - servedFraction) * efficiency);
-          battFlowW = -r2((shedding.servedWatts * servedFraction) / dischargeEff);
+          // M0-P1: unservedW in load-side (AC) watts
+          unservedW = shedding.unservedWattsAC;
+          // M0-P2: battFlowW based on actual energy change
+          battFlowW = -r2((energyBefore - energy) / dtHours);
           totalDischargeWh += r2(energyAvailable);
           floorHitCount++;
         }
@@ -539,17 +614,17 @@ export function runSimulation(
     totalSolarUsedWh += r2(solarUsedW * dtHours);
     totalUnservedWh += r2(unservedW * dtHours);
     
-    const soc = r2((energy / eNom) * 100);
-    if (soc < minSoC) {
-      minSoC = soc;
+    // M0-P3: Track minSoC based on start-of-step values
+    if (socAtStart < minSoC) {
+      minSoC = socAtStart;
       minSoCTime = simDay * 1440 + minuteOfDay;
     }
     
-    // Fix #17: Only record non-warmup data
+    // M0-P3: Only record non-warmup data, use state at START of step
     if (!isWarmup) {
       timeSeries.push({
         t: r2((simDay * 1440) + minuteOfDay),
-        soc,
+        soc: socAtStart,  // M0-P3: State at start, not end
         loadW: r2(loadW),
         pvW: r2(pvW),
         gridW: r2(gridW),
