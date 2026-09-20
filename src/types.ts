@@ -151,7 +151,7 @@ export interface ProjectOptions {
 }
 
 export interface Project {
-  v: 1;
+  v: 2;  // M1: Updated to v2 for calibration support
   locale: 'en' | 'bn';
   currency: string;
   loads: LoadItem[];
@@ -162,6 +162,7 @@ export interface Project {
   site: SolarSite;
   tariff: Tariff;
   options: ProjectOptions;
+  calibration?: CalibrationState | null;  // M1: Calibration state
 }
 
 export interface Warning {
@@ -219,4 +220,56 @@ export interface CostResult {
   simplePaybackYears: number | null;
   costPerKwhDelivered: number;
   batteryLifeYears: number;
+}
+
+// ============================================================
+// CALIBRATION TYPES (M1)
+// ============================================================
+
+export type SocSource = 'bms' | 'inverter_display' | 'voltage_estimate' | 'other';
+
+export interface BackupTest {
+  id: string;
+  createdAt: string;                        // ISO 8601
+  type: 'partial_discharge' | 'run_to_cutoff';
+  startSoC: number;                         // % at test start, 0–100
+  endSoC: number;                           // % at end
+  socSource: SocSource;
+  durationMin: number;
+  loadStayedConstant: boolean;
+  load:
+    | { kind: 'measured'; watts: number }
+    | { kind: 'modeled'; loadIds: string[]; clockStartMinute: number; multiplierOverride?: number };
+  batteryTempC?: number;
+  hardwareSnapshot: {
+    inverterId: string;
+    bankUnitId: string;
+    chemistry: string;
+    series: number;
+    parallel: number;
+    capacityWh: number;
+    loadsHash?: string;
+  };
+  predictedBefore: { endSoC: number };
+  enabled: boolean;
+  notes?: string;
+}
+
+export interface CalibrationProfile {
+  v: 1;
+  mode: 'systemLoss' | 'lossModel' | 'capacity';
+  systemLossFactor?: number;                // k, mode A
+  lossModel?: { a: number; b: number };     // mode B: P_batt = a·P_load + b
+  capacityScale?: number;                   // mode C
+  validLoadRangeW: [number, number];
+  interval: { low: number; high: number };
+  confidence: 'high' | 'medium' | 'low';
+  basedOnTests: string[];
+  fittedAt: string;
+}
+
+export interface CalibrationState {
+  tests: BackupTest[];
+  profile: CalibrationProfile | null;
+  active: boolean;
 }
