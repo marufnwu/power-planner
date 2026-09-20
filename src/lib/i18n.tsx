@@ -341,10 +341,10 @@ export function LocaleToggle() {
   };
   
   return (
-    <div className="flex items-center gap-1 text-xs rounded-full p-0.5" style={{ border: '1px solid var(--border)' }}>
+    <div className="flex items-center gap-0.5 text-xs rounded-full p-0.5 h-9 md:h-10" style={{ border: '1px solid var(--border)' }}>
       <button
         onClick={() => handleLanguageChange('en')}
-        className="px-2 py-1 rounded-full transition-all font-medium"
+        className="px-2.5 md:px-3 py-1.5 rounded-full transition-all font-medium text-xs md:text-sm min-w-[36px] md:min-w-[40px]"
         style={{
           background: locale === 'en' ? 'var(--ink)' : 'transparent',
           color: locale === 'en' ? 'var(--paper)' : 'var(--muted)',
@@ -355,7 +355,7 @@ export function LocaleToggle() {
       </button>
       <button
         onClick={() => handleLanguageChange('bn')}
-        className="px-2 py-1 rounded-full transition-all font-medium"
+        className="px-2.5 md:px-3 py-1.5 rounded-full transition-all font-medium text-xs md:text-sm min-w-[36px] md:min-w-[40px]"
         style={{
           background: locale === 'bn' ? 'var(--ink)' : 'transparent',
           color: locale === 'bn' ? 'var(--paper)' : 'var(--muted)',

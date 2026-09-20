@@ -61,19 +61,22 @@ function Layout() {
         role="banner"
         className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
         style={{
-          background: scrolled || !isHome ? 'rgba(250, 250, 247, 0.85)' : 'transparent',
+          background: scrolled || !isHome ? 'rgba(250, 250, 247, 0.95)' : 'transparent',
           backdropFilter: scrolled || !isHome ? 'blur(12px)' : 'none',
           borderBottom: scrolled || !isHome ? '1px solid var(--border)' : '1px solid transparent',
         }}
       >
-        <nav aria-label="Main navigation" className="container-ultra flex items-center justify-between py-4">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'var(--ink)' }}>
-              <Zap className="w-3.5 h-3.5" style={{ color: 'var(--paper)' }} />
+        <nav aria-label="Main navigation" className="container-ultra flex items-center justify-between h-14 md:h-16">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2 group flex-shrink-0">
+            <div className="w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center transition-transform group-hover:scale-110" style={{ background: 'var(--ink)' }}>
+              <Zap className="w-4 h-4 md:w-5 md:h-5" style={{ color: 'var(--paper)' }} />
             </div>
-            <span className="font-medium text-sm tracking-tight">Power Planner</span>
+            <span className="font-semibold text-sm md:text-base tracking-tight hidden sm:inline">Power Planner</span>
           </Link>
-          <div className="hidden md:flex items-center gap-8 text-sm">
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-1 lg:gap-2">
             <NavLink to="/choose" label="Choose" />
             <NavLink to="/plan" label="Planner" />
             <NavLink to="/audit" label="Audit" />
@@ -81,15 +84,17 @@ function Layout() {
             <NavLink to="/learn" label="Learn" />
             <NavLink to="/assumptions" label="Assumptions" />
           </div>
-          <div className="flex items-center gap-3">
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 md:gap-3">
             <LocaleToggle />
-            <Link to="/plan" className="btn-primary text-xs md:text-sm py-2 px-4 hidden md:inline-flex">
+            <Link to="/plan" className="btn-primary text-sm py-2 px-4 hidden md:inline-flex">
               Open planner
             </Link>
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg transition-colors"
+              className="md:hidden w-11 h-11 flex items-center justify-center rounded-lg transition-colors"
               style={{ 
                 background: mobileMenuOpen ? 'var(--ink)' : 'transparent',
                 color: mobileMenuOpen ? 'var(--paper)' : 'var(--ink)'
@@ -97,7 +102,7 @@ function Layout() {
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileMenuOpen}
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </nav>
@@ -105,10 +110,10 @@ function Layout() {
         {/* Mobile menu */}
         {mobileMenuOpen && (
           <div 
-            className="md:hidden fixed inset-0 top-[73px] z-40 animate-fade-in"
+            className="md:hidden fixed inset-0 top-14 z-40 animate-fade-in overflow-y-auto"
             style={{ background: 'var(--paper)' }}
           >
-            <div className="container-ultra py-6 space-y-2">
+            <div className="container-ultra py-4 space-y-1">
               <MobileNavLink to="/choose" label="Help me choose" icon="🎯" onClick={() => setMobileMenuOpen(false)} />
               <MobileNavLink to="/plan" label="Planner" icon="📊" onClick={() => setMobileMenuOpen(false)} />
               <MobileNavLink to="/audit" label="Audit my system" icon="🔍" onClick={() => setMobileMenuOpen(false)} />
@@ -116,10 +121,10 @@ function Layout() {
               <MobileNavLink to="/learn" label="Learning hub" icon="📚" onClick={() => setMobileMenuOpen(false)} />
               <MobileNavLink to="/assumptions" label="All assumptions" icon="📋" onClick={() => setMobileMenuOpen(false)} />
               
-              <div className="pt-4 mt-4" style={{ borderTop: '1px solid var(--border)' }}>
+              <div className="pt-3 mt-3" style={{ borderTop: '1px solid var(--border)' }}>
                 <Link 
                   to="/plan" 
-                  className="btn-primary w-full justify-center py-3"
+                  className="btn-primary w-full justify-center py-3 text-base"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Open planner
@@ -146,37 +151,37 @@ function Layout() {
       </main>
 
       {/* Footer */}
-      <footer role="contentinfo" className="mt-24 py-12 border-t" style={{ borderColor: 'var(--border)' }}>
+      <footer role="contentinfo" className="mt-12 md:mt-24 py-8 md:py-12 border-t" style={{ borderColor: 'var(--border)' }}>
         <div className="container-ultra">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8 mb-8 md:mb-12">
             <div className="md:col-span-2">
-              <div className="display-md mb-3" style={{ maxWidth: '20ch' }}>
+              <div className="display-md mb-2 md:mb-3" style={{ maxWidth: '20ch' }}>
                 Size it right. <em>Understand why.</em>
               </div>
-              <p className="text-sm" style={{ color: 'var(--muted)', maxWidth: '40ch' }}>
+              <p className="text-xs md:text-sm leading-relaxed" style={{ color: 'var(--muted)', maxWidth: '40ch' }}>
                 A free planning tool for home IPS, inverter-battery, and hybrid solar systems. No login. No accounts. All calculations run in your browser.
               </p>
             </div>
             <div>
-              <div className="eyebrow mb-3">Tool</div>
+              <div className="eyebrow mb-2 md:mb-3 text-xs">Tool</div>
               <ul className="space-y-2 text-sm">
-                <li><Link to="/choose" style={{ color: 'var(--ink)' }}>Help me choose</Link></li>
-                <li><Link to="/plan" style={{ color: 'var(--ink)' }}>Planner</Link></li>
-                <li><Link to="/learn" style={{ color: 'var(--ink)' }}>Learning hub</Link></li>
+                <li><Link to="/choose" style={{ color: 'var(--ink)' }} className="hover:underline">Help me choose</Link></li>
+                <li><Link to="/plan" style={{ color: 'var(--ink)' }} className="hover:underline">Planner</Link></li>
+                <li><Link to="/learn" style={{ color: 'var(--ink)' }} className="hover:underline">Learning hub</Link></li>
               </ul>
             </div>
             <div>
-              <div className="eyebrow mb-3">Reference</div>
+              <div className="eyebrow mb-2 md:mb-3 text-xs">Reference</div>
               <ul className="space-y-2 text-sm">
-                <li><Link to="/assumptions" style={{ color: 'var(--ink)' }}>All assumptions</Link></li>
-                <li><a href="https://github.com" style={{ color: 'var(--ink)' }}>Source code</a></li>
+                <li><Link to="/assumptions" style={{ color: 'var(--ink)' }} className="hover:underline">All assumptions</Link></li>
+                <li><a href="https://github.com" style={{ color: 'var(--ink)' }} className="hover:underline">Source code</a></li>
               </ul>
             </div>
           </div>
-          <div className="divider mb-6" />
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs" style={{ color: 'var(--muted)' }}>
-            <p>Results are planning estimates, not engineered designs. Confirm with a licensed electrician.</p>
-            <p style={{ fontFamily: 'var(--font-mono)' }}>v1.0 · built with care</p>
+          <div className="divider mb-4 md:mb-6" />
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-4 text-xs" style={{ color: 'var(--muted)' }}>
+            <p className="leading-relaxed">Results are planning estimates, not engineered designs. Confirm with a licensed electrician.</p>
+            <p className="flex-shrink-0" style={{ fontFamily: 'var(--font-mono)' }}>v1.0 · built with care</p>
           </div>
         </div>
       </footer>
@@ -190,14 +195,17 @@ function NavLink({ to, label }: { to: string; label: string }) {
   return (
     <Link
       to={to}
-      className="relative transition-colors"
-      style={{ color: active ? 'var(--ink)' : 'var(--muted)' }}
+      className="relative px-3 py-2 rounded-lg transition-all text-sm font-medium"
+      style={{ 
+        color: active ? 'var(--ink)' : 'var(--muted)',
+        background: active ? 'var(--paper-warm)' : 'transparent'
+      }}
     >
       {label}
       {active && (
         <span
-          className="absolute -bottom-1 left-0 right-0 h-px"
-          style={{ background: 'var(--ink)' }}
+          className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full"
+          style={{ background: 'var(--accent)' }}
         />
       )}
     </Link>
@@ -211,14 +219,14 @@ function MobileNavLink({ to, label, icon, onClick }: { to: string; label: string
     <Link
       to={to}
       onClick={onClick}
-      className="flex items-center gap-3 p-4 rounded-xl transition-all"
+      className="flex items-center gap-4 px-4 py-4 rounded-xl transition-all min-h-[56px]"
       style={{ 
         background: active ? 'var(--paper-warm)' : 'transparent',
         border: active ? '1px solid var(--border)' : '1px solid transparent'
       }}
     >
-      <span className="text-2xl">{icon}</span>
-      <span className="text-base font-medium" style={{ color: active ? 'var(--ink)' : 'var(--muted)' }}>
+      <span className="text-3xl flex-shrink-0">{icon}</span>
+      <span className="text-base font-medium flex-1" style={{ color: active ? 'var(--ink)' : 'var(--muted)' }}>
         {label}
       </span>
     </Link>
@@ -227,11 +235,11 @@ function MobileNavLink({ to, label, icon, onClick }: { to: string; label: string
 
 function PageLoader() {
   return (
-    <div className="min-h-screen flex items-center justify-center pt-20">
-      <div className="text-center">
-        <div className="num text-sm mb-2" style={{ color: 'var(--muted)' }}>Loading</div>
-        <div className="w-24 h-px mx-auto overflow-hidden" style={{ background: 'var(--border)' }}>
-          <div className="h-full w-1/3 animate-pulse" style={{ background: 'var(--ink)' }} />
+    <div className="min-h-screen flex items-center justify-center pt-16 md:pt-20">
+      <div className="text-center px-4">
+        <div className="num text-sm mb-3" style={{ color: 'var(--muted)' }}>Loading</div>
+        <div className="w-32 h-0.5 mx-auto overflow-hidden rounded-full" style={{ background: 'var(--border)' }}>
+          <div className="h-full w-1/3 animate-pulse rounded-full" style={{ background: 'var(--ink)' }} />
         </div>
       </div>
     </div>
