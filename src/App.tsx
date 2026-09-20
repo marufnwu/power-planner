@@ -60,12 +60,9 @@ function Layout() {
       {/* Navigation */}
       <header
         role="banner"
-        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
-        style={{
-          background: scrolled || !isHome ? 'rgba(250, 250, 247, 0.95)' : 'transparent',
-          backdropFilter: scrolled || !isHome ? 'blur(12px)' : 'none',
-          borderBottom: scrolled || !isHome ? '1px solid var(--border)' : '1px solid transparent',
-        }}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled || !isHome ? 'header-solid' : 'header-transparent'
+        }`}
       >
         <nav aria-label="Main navigation" className="container-ultra flex items-center justify-between h-14 md:h-16">
           {/* Logo */}
