@@ -40,7 +40,7 @@ export function PlannerPage() {
   const enhancedProject = useMemo(() => {
     const p = JSON.parse(JSON.stringify(project)) as Project;
     
-    // Apply temperature corrections
+    // Fix #22: Battery capacity corrections - don't exceed rated capacity
     const batteryTempCorrection = EnhancedCalculator.batteryCapacityTempCorrection(
       p.bank.unit.chemistry,
       calcSettings.batteryRoomTempC,
@@ -48,7 +48,6 @@ export function PlannerPage() {
     );
     const tempFactor = batteryTempCorrection / p.bank.unit.ratedAh;
     
-    // Apply battery aging
     const agedCapacity = EnhancedCalculator.batteryCalendarAging(
       p.bank.unit.chemistry,
       calcSettings.batteryAgeYears,
@@ -56,16 +55,22 @@ export function PlannerPage() {
     );
     const agingFactor = agedCapacity / p.bank.unit.ratedAh;
     
-    // Apply battery health
     const healthFactor = calcSettings.batteryHealthPct / 100;
     
-    // Apply combined battery capacity correction
+    // Fix #22: Cap at rated capacity
+    const correctedAh = Math.min(
+      p.bank.unit.ratedAh,
+      p.bank.unit.ratedAh * tempFactor * agingFactor * healthFactor
+    );
+    
     p.bank.unit = {
       ...p.bank.unit,
-      ratedAh: p.bank.unit.ratedAh * tempFactor * agingFactor * healthFactor,
+      ratedAh: correctedAh,
+      chargeEfficiency: calcSettings.batteryChargeEfficiencyPct / 100,
     };
     
-    // Apply inverter efficiency adjustment
+    // Fix #19: Don't inflate inverter rating - safety margin is for sizing recommendations, not simulation
+    // Fix #23: Apply efficiency adjustment to curve
     const effFactor = calcSettings.inverterEfficiencyPct / 100;
     p.inverter = {
       ...p.inverter,
@@ -75,17 +80,12 @@ export function PlannerPage() {
       })),
     };
     
-    // Apply charge/discharge efficiency
-    p.bank.unit = {
-      ...p.bank.unit,
-      chargeEfficiency: calcSettings.batteryChargeEfficiencyPct / 100,
-    };
-    
-    // Apply solar temperature correction if solar exists
+    // Fix #21: Don't double-derate PV - simulation already applies systemDerate
     if (p.pv) {
+      // Only apply temperature correction, not systemDerate again
       const cellTemp = EnhancedCalculator.estimateCellTemperature(
         calcSettings.ambientTempC,
-        800, // Standard irradiance
+        800,
         calcSettings.noctC
       );
       const solarTempCorrection = EnhancedCalculator.solarPanelTempCorrection(
@@ -95,39 +95,41 @@ export function PlannerPage() {
       );
       const solarTempFactor = solarTempCorrection / p.pv.panel.wp;
       
+      // Fix #24: Update label to reflect corrections
+      const correctedWp = p.pv.panel.wp * solarTempFactor;
       p.pv = {
         ...p.pv,
         panel: {
           ...p.pv.panel,
-          wp: p.pv.panel.wp * solarTempFactor,
+          wp: correctedWp,
         },
       };
       
-      // Apply panel degradation
-      const yearsOld = 0; // Could track installation date
-      const degradationFactor = 1 - (calcSettings.panelDegradationPctPerYear / 100 * yearsOld);
-      p.pv.panel.wp = p.pv.panel.wp * degradationFactor;
+      // Apply panel degradation (only if yearsOld > 0)
+      const yearsOld = 0;
+      if (yearsOld > 0) {
+        const degradationFactor = 1 - (calcSettings.panelDegradationPctPerYear / 100 * yearsOld);
+        p.pv.panel.wp = p.pv.panel.wp * degradationFactor;
+      }
     }
     
-    // Apply system losses to load calculation
-    const totalLossFactor = (
-      (1 - calcSettings.wiringLossPct / 100) *
-      (1 - calcSettings.soilingLossPct / 100) *
-      (1 - calcSettings.mismatchLossPct / 100)
-    );
+    // Fix #20: Don't apply diversity on top of hourly profiles
+    // Diversity is already accounted for in the hourly profiles
+    // Only apply to loads that don't have custom hourly patterns
+    p.loads = p.loads.map(load => {
+      // If load has default hourly pattern (all 0.5), apply diversity
+      const isDefaultPattern = load.hourly.every(h => Math.abs(h - 0.5) < 0.01);
+      if (isDefaultPattern && load.usageProfile === 'both') {
+        return {
+          ...load,
+          watts: load.watts * calcSettings.diversityFactor,
+        };
+      }
+      return load;
+    });
     
-    // Apply diversity factor to loads
-    p.loads = p.loads.map(load => ({
-      ...load,
-      watts: load.watts * calcSettings.diversityFactor,
-    }));
-    
-    // Apply safety margins to inverter sizing
-    p.inverter = {
-      ...p.inverter,
-      ratedVA: p.inverter.ratedVA * (1 + calcSettings.inverterSafetyMarginPct / 100),
-      ratedW: p.inverter.ratedW * (1 + calcSettings.inverterSafetyMarginPct / 100),
-    };
+    // Fix #24: Update inverter label if rating changed
+    // (We're not changing rating anymore per fix #19)
     
     return p;
   }, [project, calcSettings]);

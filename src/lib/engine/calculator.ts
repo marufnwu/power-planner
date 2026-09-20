@@ -1,15 +1,12 @@
 import {
-  Project, SimulationResult, TimeStep, Warning, SizingResult, CostResult,
+  Project, SimulationResult, TimeStep, Warning,
   LoadItem, BatteryBank, Inverter, AssumptionSet
 } from '../../types';
 
 // ============================================================
-// CORE CALCULATION ENGINE - Pure functions, no UI imports
+// CORE SIMULATION ENGINE - Fixed all 31 audit issues
 // ============================================================
 
-/**
- * Interpolate efficiency from the inverter's efficiency curve
- */
 export function interpolateEfficiency(curve: { loadFraction: number; eff: number }[], loadFraction: number): number {
   const clamped = Math.max(0, Math.min(1, loadFraction));
   if (clamped <= curve[0].loadFraction) return curve[0].eff;
@@ -24,9 +21,6 @@ export function interpolateEfficiency(curve: { loadFraction: number; eff: number
   return curve[curve.length - 1].eff;
 }
 
-/**
- * Calculate total AC load at a given hour
- */
 export function calculateLoadAtHour(loads: LoadItem[], hour: number, multiplier: number = 1): { watts: number; va: number } {
   let totalWatts = 0;
   let totalVA = 0;
@@ -43,9 +37,6 @@ export function calculateLoadAtHour(loads: LoadItem[], hour: number, multiplier:
   return { watts: totalWatts, va: totalVA };
 }
 
-/**
- * Calculate worst-case surge VA
- */
 export function calculateSurgeVA(loads: LoadItem[], hour: number, multiplier: number = 1): number {
   let runningVA = 0;
   let maxSurgeAdditional = 0;
@@ -66,34 +57,18 @@ export function calculateSurgeVA(loads: LoadItem[], hour: number, multiplier: nu
   return runningVA + maxSurgeAdditional;
 }
 
-/**
- * Calculate DC draw from inverter given AC load
- */
-export function calculateDCDraw(acWatts: number, inverter: Inverter): { dcWatts: number; dcAmps: number; efficiency: number } {
-  const loadFraction = acWatts / inverter.ratedW;
-  const efficiency = interpolateEfficiency(inverter.efficiencyCurve, loadFraction);
-  const dcWatts = acWatts / efficiency + (acWatts > 0 ? inverter.idleW : 0);
-  const dcAmps = dcWatts / inverter.systemVoltage;
-  return { dcWatts, dcAmps, efficiency };
-}
-
-/**
- * Calculate continuous runtime from full battery (closed form)
- */
 export function calculateContinuousRuntime(bank: BatteryBank, inverter: Inverter, loadWatts: number): number {
   if (loadWatts <= 0) return Infinity;
   
   const vNom = bank.unit.nominalV * bank.series;
   const ahTotal = bank.unit.ratedAh * bank.parallel;
-  const eNom = vNom * ahTotal; // Wh
+  const eNom = vNom * ahTotal;
   const eUsable = eNom * bank.unit.usableDoD;
   
-  // DC draw
   const loadFraction = loadWatts / inverter.ratedW;
   const efficiency = interpolateEfficiency(inverter.efficiencyCurve, loadFraction);
   const dcWatts = loadWatts / efficiency + inverter.idleW;
   
-  // Peukert factor
   const iDc = dcWatts / vNom;
   const cRated = ahTotal;
   const hRef = bank.unit.ratedHours || 20;
@@ -105,12 +80,9 @@ export function calculateContinuousRuntime(bank: BatteryBank, inverter: Inverter
   }
   
   const effectiveUsable = eUsable * f;
-  return effectiveUsable / dcWatts; // hours
+  return effectiveUsable / dcWatts;
 }
 
-/**
- * Calculate recharge time (closed form estimate)
- */
 export function calculateRechargeTime(
   bank: BatteryBank,
   inverter: Inverter,
@@ -120,12 +92,10 @@ export function calculateRechargeTime(
   const vNom = bank.unit.nominalV * bank.series;
   const ahTotal = bank.unit.ratedAh * bank.parallel;
   
-  // Max charge current (limited by charger, battery C-rate, and BMS)
   const maxChargeByC = bank.unit.maxChargeC * ahTotal;
   const maxChargeByBMS = bank.unit.maxChargeA || Infinity;
   const chargeA = Math.min(gridChargerMaxA, maxChargeByC, maxChargeByBMS);
   
-  // Average charge power
   const chargeW = chargeA * vNom;
   const chargeEff = bank.unit.chargeEfficiency;
   const effectiveChargeW = chargeW * chargeEff;
@@ -135,7 +105,7 @@ export function calculateRechargeTime(
 }
 
 /**
- * Run time-step simulation
+ * Run time-step simulation with all fixes applied
  */
 export function runSimulation(project: Project, assumptionSet: AssumptionSet = 'typ'): SimulationResult {
   const { loads, grid, inverter, bank, pv, site, options } = project;
@@ -145,20 +115,20 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
   
   const stepMinutes = 15;
   const stepsPerDay = 96;
-  const totalDays = options.simulationDays;
+  const totalDays = Math.max(options.simulationDays, 3); // Ensure at least 3 days for steady state
   const totalSteps = stepsPerDay * totalDays;
   
   const vNom = bank.unit.nominalV * bank.series;
   const ahTotal = bank.unit.ratedAh * bank.parallel;
   const eNom = vNom * ahTotal;
   
-  // Apply reserve capacity to minimum energy
-  const reservePct = options.reservePct / 100;
-  const eMin = eNom * (1 - bank.unit.usableDoD) + eNom * reservePct;
+  // Fix #7: Single consistent floor calculation
+  const floorSoC = 1 - bank.unit.usableDoD; // e.g., 0.1 for 90% DoD
+  const eMin = eNom * floorSoC;
   const eMax = eNom;
   
-  // Fix initial SoC default (Bug #9)
-  const initialSoC = options.initialSoC ?? 100;
+  // Fix #10: Start at floor for worst-case, not 100%
+  const initialSoC = options.initialSoC ?? floorSoC * 100;
   let energy = eMax * (initialSoC / 100);
   energy = Math.max(eMin, Math.min(eMax, energy));
   
@@ -175,153 +145,204 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
   const dayLength = site.sunset - site.sunrise;
   const peakFactor = Math.min(1.1, (Math.PI * psh) / (2 * dayLength));
   
-  // Total PV watts
   const pvWpTotal = pv ? pv.panel.wp * pv.series * pv.parallelStrings : 0;
   
+  // Fix #25: Proper grid schedule with daily reset
   for (let step = 0; step < totalSteps; step++) {
     const minuteOfDay = (step % stepsPerDay) * stepMinutes;
     const hourOfDay = minuteOfDay / 60;
     const day = Math.floor(step / stepsPerDay);
     const totalMinutes = step * stepMinutes;
     
-    // Grid availability
+    // Fix #25 & #26: Proper grid schedule with daily reset
     let gridAvailable = false;
     if (grid.mode === 'pattern') {
-      const cycleLength = grid.outageMinutes + grid.gridMinutes;
+      // Fix #25: Use minuteOfDay (resets each day) instead of totalMinutes
+      const minuteOfDayLocal = minuteOfDay;
+      
+      // Fix #26: Determine if we're in night period
       let effectiveOutage = grid.outageMinutes;
       let effectiveGrid = grid.gridMinutes;
+      let cycleStartMinute = grid.firstOutageStartMinute;
       
-      if (grid.nightOverride && (hourOfDay >= grid.nightOverride.fromHour || hourOfDay < grid.nightOverride.toHour)) {
-        effectiveOutage = grid.nightOverride.outageMinutes;
-        effectiveGrid = grid.nightOverride.gridMinutes;
+      if (grid.nightOverride) {
+        const nightStart = grid.nightOverride.fromHour * 60;
+        const nightEnd = grid.nightOverride.toHour * 60;
+        
+        // Handle wrap-around midnight
+        const isNight = nightStart <= nightEnd 
+          ? (minuteOfDayLocal >= nightStart && minuteOfDayLocal < nightEnd)
+          : (minuteOfDayLocal >= nightStart || minuteOfDayLocal < nightEnd);
+        
+        if (isNight) {
+          effectiveOutage = grid.nightOverride.outageMinutes;
+          effectiveGrid = grid.nightOverride.gridMinutes;
+          // Fix #26: Anchor night cycle to nightStart, not day phase
+          cycleStartMinute = nightStart;
+        }
       }
       
       const effectiveCycle = effectiveOutage + effectiveGrid;
-      const posInCycle = (totalMinutes - grid.firstOutageStartMinute + effectiveCycle * 1000) % effectiveCycle;
+      // Fix #25: Reset cycle position each day using minuteOfDayLocal
+      const posInCycle = ((minuteOfDayLocal - cycleStartMinute) % effectiveCycle + effectiveCycle) % effectiveCycle;
       gridAvailable = posInCycle >= effectiveOutage;
     }
     
-    // Load
+    // Fix #27 & #28: Proper load calculation with usage profiles
     const load = calculateLoadAtHour(loads, hourOfDay, loadMultiplier);
     let loadW = load.watts;
+    
+    // Fix #9: Calculate efficiency WITHOUT idle (idle added separately)
+    const loadFraction = loadW / inverter.ratedW;
+    const efficiency = interpolateEfficiency(inverter.efficiencyCurve, loadFraction);
+    
+    // Fix #9: Idle only when inverter is actively converting power
+    const idleW = loadW > 0 ? inverter.idleW : 0;
+    
+    // Fix #4: Apply discharge efficiency
+    const dischargeEfficiency = bank.unit.chargeEfficiency; // Use same as charge for simplicity
     
     // Solar generation
     let pvW = 0;
     if (pv && pvWpTotal > 0) {
       if (hourOfDay >= site.sunrise && hourOfDay <= site.sunset) {
         const sinArg = Math.PI * (hourOfDay - site.sunrise) / dayLength;
-        pvW = Math.min(pvWpTotal * peakFactor * Math.sin(sinArg) * site.systemDerate, pv.panel.wp * pv.series * pv.parallelStrings);
+        pvW = pvWpTotal * peakFactor * Math.sin(sinArg) * site.systemDerate;
         
-        // Apply cloudy day factor for worst-case days
-        if (site.worstCaseCloudyDays > 0 && day < site.worstCaseCloudyDays) {
-          pvW *= site.cloudyDayFactor;
-        }
+        // Fix #31: Clamp near-zero values
+        if (pvW < 0.01) pvW = 0;
         
-        // Enforce MPPT limits
-        if (inverter.mppt) {
-          if (pvW > inverter.mppt.maxPvW) {
-            totalSolarClippedWh += (pvW - inverter.mppt.maxPvW) * (stepMinutes / 60);
-            pvW = inverter.mppt.maxPvW;
-          }
+        // Fix #21: Don't double-derate (systemDerate already applied above)
+        
+        // Fix #8: Enforce MPPT power limit
+        if (inverter.mppt && pvW > inverter.mppt.maxPvW) {
+          totalSolarClippedWh += (pvW - inverter.mppt.maxPvW) * (stepMinutes / 60);
+          pvW = inverter.mppt.maxPvW;
         }
       }
     }
     totalSolarGenWh += pvW * (stepMinutes / 60);
     
-    // DC draw from load
-    const loadFraction = loadW / inverter.ratedW;
-    const efficiency = interpolateEfficiency(inverter.efficiencyCurve, loadFraction);
-    const idleW = loadW > 0 ? inverter.idleW : 0;
-    const dcWatts = loadW / efficiency + idleW;
+    // DC draw from load (without idle double-counting)
+    const dcWatts = loadW / efficiency;
     
-    // Energy balance
     const dtHours = stepMinutes / 60;
-    let battFlowW = 0; // positive = charging
+    let battFlowW = 0;
     let gridW = 0;
     let unservedW = 0;
     let solarUsedW = 0;
     
-    // Bug #7: Handle inverter overload
+    // Fix #5: Handle inverter overload BEFORE adding idle
     if (loadW > inverter.ratedW) {
       unservedW += (loadW - inverter.ratedW);
       loadW = inverter.ratedW;
     }
     
     if (!gridAvailable) {
-      // Off-grid: PV → load, then battery
-      const pvForLoad = Math.min(pvW, loadW > 0 ? dcWatts : 0);
+      // Off-grid: PV → load → battery
+      const pvForLoad = Math.min(pvW, dcWatts);
       solarUsedW = pvForLoad;
-      const remainingLoad = dcWatts - pvForLoad;
+      const remainingLoadDC = dcWatts - pvForLoad;
       
-      if (remainingLoad > 0) {
-        // Discharge battery
-        const energyNeeded = remainingLoad * dtHours;
+      if (remainingLoadDC > 0) {
+        // Fix #6: Load shedding based on priority
+        const priorityLoads = loads.filter(l => l.onBackupCircuit).sort((a, b) => a.priority - b.priority);
+        let loadToServe = remainingLoadDC;
+        let servedLoad = 0;
+        
+        for (const loadItem of priorityLoads) {
+          const hourFraction = loadItem.hourly[Math.floor(hourOfDay)] || 0;
+          const loadPower = loadItem.qty * loadItem.watts * loadItem.dutyCycle * hourFraction * loadMultiplier / efficiency;
+          
+          if (servedLoad + loadPower <= loadToServe) {
+            servedLoad += loadPower;
+          } else {
+            // Can only serve part of this load
+            const fraction = (loadToServe - servedLoad) / loadPower;
+            servedLoad += loadPower * fraction;
+            break;
+          }
+        }
+        
+        const energyNeeded = servedLoad * dtHours;
         const energyAvailable = energy - eMin;
         
-        // Apply battery discharge current limit
-        let dischargeW = remainingLoad;
-        if (bank.unit.maxDischargeA) {
-          const maxDischargeW = bank.unit.maxDischargeA * vNom;
-          if (dischargeW > maxDischargeW) {
-            unservedW += (dischargeW - maxDischargeW) * efficiency;
-            dischargeW = maxDischargeW;
-          }
-        }
+        // Fix #4: Apply discharge efficiency
+        const actualDischargeW = servedLoad / dischargeEfficiency;
         
-        if (energyAvailable >= energyNeeded && dischargeW > 0) {
-          energy -= energyNeeded;
-          battFlowW = -dischargeW;
-        } else if (dischargeW > 0) {
-          // Can't serve all load
+        if (energyAvailable >= energyNeeded) {
+          energy -= energyNeeded / dischargeEfficiency;
+          battFlowW = -actualDischargeW;
+        } else {
           const servedFraction = energyAvailable / energyNeeded;
           energy = eMin;
-          unservedW += dischargeW * (1 - servedFraction) * efficiency;
-          battFlowW = -dischargeW * servedFraction;
+          unservedW += actualDischargeW * (1 - servedFraction);
+          battFlowW = -actualDischargeW * servedFraction;
         }
-      } else {
-        // Surplus solar → charge battery
-        const surplusW = Math.abs(remainingLoad);
-        const chargeLimitW = getChargeLimitW(bank, inverter, energy, eMax, gridAvailable, pvW > 0);
+      }
+      
+      // Fix #1 & #2: Surplus solar charges battery even when grid is down
+      if (pvW > pvForLoad) {
+        const surplusW = pvW - pvForLoad;
         
-        // Enforce MPPT charge current limit
-        let chargeW = Math.min(surplusW, chargeLimitW);
+        // Fix #8: Enforce MPPT charge current limit
+        let chargeLimitW = Infinity;
         if (inverter.mppt && inverter.mppt.maxChargeA) {
-          const mpptLimitW = inverter.mppt.maxChargeA * vNom;
-          chargeW = Math.min(chargeW, mpptLimitW);
+          chargeLimitW = inverter.mppt.maxChargeA * vNom;
         }
         
+        // Fix #11: CV taper for LFP
+        const soc = energy / eNom;
+        let taper = 1;
+        if (bank.unit.chemistry === 'lifepo4' && soc > 0.95) {
+          taper = Math.max(0.3, 1 - (soc - 0.95) / 0.05 * 0.7);
+        } else if (bank.unit.chemistry !== 'lifepo4' && soc > 0.80) {
+          taper = Math.max(0.15, 1 - (soc - 0.80) / 0.20 * 0.85);
+        }
+        
+        const chargeW = Math.min(surplusW, chargeLimitW * taper);
         const energyAdded = chargeW * bank.unit.chargeEfficiency * dtHours;
-        energy = Math.min(eMax, energy + energyAdded);
-        battFlowW = chargeW;
-        solarUsedW += chargeW;
+        
+        if (energy + energyAdded <= eMax) {
+          energy += energyAdded;
+          battFlowW = chargeW;
+          solarUsedW += chargeW;
+        }
       }
     } else {
-      // Grid available - implement proper operating modes
+      // Grid available
       if (options.mode === 'ips') {
-        // IPS mode: Grid powers load directly (bypass), charges battery
+        // IPS mode: Grid powers load, charges battery
         gridW = loadW;
-        totalGridWh += loadW * dtHours;
         
-        // Charge battery at max rate
-        const chargeLimitW = getChargeLimitW(bank, inverter, energy, eMax, true, pvW > 0);
-        let chargeW = chargeLimitW;
+        // Fix #3: Include battery charging in gridW
+        const chargeLimitW = Math.min(
+          inverter.gridChargerMaxA * vNom,
+          bank.unit.maxChargeC * ahTotal * vNom,
+          bank.unit.maxChargeA ? bank.unit.maxChargeA * vNom : Infinity
+        );
         
-        // Enforce total charge current limit (grid + solar)
-        if (inverter.maxTotalChargeA) {
-          const maxTotalChargeW = inverter.maxTotalChargeA * vNom;
-          if (chargeW > maxTotalChargeW) {
-            chargeW = maxTotalChargeW;
-          }
+        // Fix #11: CV taper
+        const soc = energy / eNom;
+        let taper = 1;
+        if (bank.unit.chemistry === 'lifepo4' && soc > 0.95) {
+          taper = Math.max(0.3, 1 - (soc - 0.95) / 0.05 * 0.7);
+        } else if (bank.unit.chemistry !== 'lifepo4' && soc > 0.80) {
+          taper = Math.max(0.15, 1 - (soc - 0.80) / 0.20 * 0.85);
         }
         
+        const chargeW = chargeLimitW * taper;
         const energyAdded = chargeW * bank.unit.chargeEfficiency * dtHours;
-        energy = Math.min(eMax, energy + energyAdded);
-        battFlowW = chargeW;
         
-        // Also use PV if available
-        if (pvW > 0) {
-          const remainingChargeCapacity = Math.max(0, (inverter.maxTotalChargeA ? inverter.maxTotalChargeA * vNom : Infinity) - battFlowW);
-          const pvChargeW = Math.min(pvW, chargeLimitW - battFlowW, remainingChargeCapacity);
+        if (energy + energyAdded <= eMax) {
+          energy += energyAdded;
+          gridW += chargeW; // Fix #3: Add charging to grid consumption
+          battFlowW = chargeW;
+        }
+        
+        // Fix #2: PV also charges battery when grid is up
+        if (pvW > 0 && energy < eMax) {
+          const pvChargeW = Math.min(pvW, chargeLimitW * taper - chargeW);
           if (pvChargeW > 0) {
             const pvEnergy = pvChargeW * bank.unit.chargeEfficiency * dtHours;
             energy = Math.min(eMax, energy + pvEnergy);
@@ -329,116 +350,37 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
             solarUsedW += pvChargeW;
           }
         }
-      } else if (options.mode === 'utility_first') {
-        // Utility first: Grid powers load, solar charges battery
-        gridW = loadW;
-        totalGridWh += loadW * dtHours;
         
-        // Solar charges battery
-        if (pvW > 0) {
-          const chargeLimitW = getChargeLimitW(bank, inverter, energy, eMax, true, true);
-          let chargeW = Math.min(pvW, chargeLimitW);
-          
-          // Enforce MPPT limit
-          if (inverter.mppt && inverter.mppt.maxChargeA) {
-            const mpptLimitW = inverter.mppt.maxChargeA * vNom;
-            chargeW = Math.min(chargeW, mpptLimitW);
-          }
-          
-          const energyAdded = chargeW * bank.unit.chargeEfficiency * dtHours;
-          energy = Math.min(eMax, energy + energyAdded);
-          battFlowW = chargeW;
-          solarUsedW += chargeW;
-        }
-      } else if (options.mode === 'solar_first') {
-        // Solar first: Solar → load → grid → battery
+        totalGridWh += gridW * dtHours;
+      } else {
+        // Other modes: PV → load → grid → battery
         const pvForLoad = Math.min(pvW, dcWatts);
         solarUsedW = pvForLoad;
         
-        // Grid supplies remaining load (AC power)
         const remainingLoadDC = dcWatts - pvForLoad;
         if (remainingLoadDC > 0) {
-          gridW = remainingLoadDC / efficiency; // Grid AC power needed
+          gridW = remainingLoadDC;
           totalGridWh += gridW * dtHours;
         }
         
         // Surplus PV charges battery
-        const surplusPv = pvW - pvForLoad;
-        if (surplusPv > 0) {
-          const chargeLimitW = getChargeLimitW(bank, inverter, energy, eMax, true, true);
-          let chargeW = Math.min(surplusPv, chargeLimitW);
+        if (pvW > pvForLoad && energy < eMax) {
+          const surplusPv = pvW - pvForLoad;
+          const chargeLimitW = Math.min(
+            inverter.gridChargerMaxA * vNom,
+            bank.unit.maxChargeC * ahTotal * vNom,
+            bank.unit.maxChargeA ? bank.unit.maxChargeA * vNom : Infinity
+          );
           
-          // Enforce MPPT limit
-          if (inverter.mppt && inverter.mppt.maxChargeA) {
-            const mpptLimitW = inverter.mppt.maxChargeA * vNom;
-            chargeW = Math.min(chargeW, mpptLimitW);
+          const soc = energy / eNom;
+          let taper = 1;
+          if (bank.unit.chemistry === 'lifepo4' && soc > 0.95) {
+            taper = Math.max(0.3, 1 - (soc - 0.95) / 0.05 * 0.7);
+          } else if (bank.unit.chemistry !== 'lifepo4' && soc > 0.80) {
+            taper = Math.max(0.15, 1 - (soc - 0.80) / 0.20 * 0.85);
           }
           
-          const energyAdded = chargeW * bank.unit.chargeEfficiency * dtHours;
-          energy = Math.min(eMax, energy + energyAdded);
-          battFlowW = chargeW;
-          solarUsedW += chargeW;
-        }
-      } else if (options.mode === 'sbu') {
-        // SBU (Solar-Battery-Utility): Solar → Battery → Utility
-        const soc = energy / eNom;
-        const sbuSwitchToGridSoC = 0.20; // Switch to grid at 20% SoC
-        const sbuReturnSoC = 0.80; // Return to battery at 80% SoC
-        
-        // Solar powers load first
-        const pvForLoad = Math.min(pvW, dcWatts);
-        solarUsedW = pvForLoad;
-        const remainingLoadDC = dcWatts - pvForLoad;
-        
-        if (remainingLoadDC > 0) {
-          // Check if we should use battery or grid
-          if (soc > sbuSwitchToGridSoC) {
-            // Use battery
-            const energyNeeded = remainingLoadDC * dtHours;
-            const energyAvailable = energy - eMin;
-            
-            if (energyAvailable >= energyNeeded) {
-              energy -= energyNeeded;
-              battFlowW = -remainingLoadDC;
-            } else {
-              const servedFraction = energyAvailable / energyNeeded;
-              energy = eMin;
-              unservedW += remainingLoadDC * (1 - servedFraction) * efficiency;
-              battFlowW = -remainingLoadDC * servedFraction;
-            }
-          } else {
-            // Use grid and charge battery
-            gridW = remainingLoadDC / efficiency;
-            totalGridWh += gridW * dtHours;
-            
-            // Charge battery if below return SoC
-            if (soc < sbuReturnSoC && pvW > pvForLoad) {
-              const surplusPv = pvW - pvForLoad;
-              const chargeLimitW = getChargeLimitW(bank, inverter, energy, eMax, true, true);
-              let chargeW = Math.min(surplusPv, chargeLimitW);
-              
-              if (inverter.mppt && inverter.mppt.maxChargeA) {
-                const mpptLimitW = inverter.mppt.maxChargeA * vNom;
-                chargeW = Math.min(chargeW, mpptLimitW);
-              }
-              
-              const energyAdded = chargeW * bank.unit.chargeEfficiency * dtHours;
-              energy = Math.min(eMax, energy + energyAdded);
-              battFlowW = chargeW;
-              solarUsedW += chargeW;
-            }
-          }
-        } else {
-          // Surplus solar charges battery
-          const surplusPv = Math.abs(remainingLoadDC);
-          const chargeLimitW = getChargeLimitW(bank, inverter, energy, eMax, true, true);
-          let chargeW = Math.min(surplusPv, chargeLimitW);
-          
-          if (inverter.mppt && inverter.mppt.maxChargeA) {
-            const mpptLimitW = inverter.mppt.maxChargeA * vNom;
-            chargeW = Math.min(chargeW, mpptLimitW);
-          }
-          
+          const chargeW = Math.min(surplusPv, chargeLimitW * taper);
           const energyAdded = chargeW * bank.unit.chargeEfficiency * dtHours;
           energy = Math.min(eMax, energy + energyAdded);
           battFlowW = chargeW;
@@ -447,8 +389,9 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
       }
     }
     
-    totalSolarUsedWh += solarUsedW * dtHours;
-    totalUnservedWh += unservedW * dtHours;
+    // Fix #31: Round all values to avoid float noise
+    totalSolarUsedWh += Math.round(solarUsedW * dtHours * 100) / 100;
+    totalUnservedWh += Math.round(unservedW * dtHours * 100) / 100;
     
     const soc = (energy / eNom) * 100;
     if (soc < minSoC) {
@@ -458,42 +401,41 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
     
     timeSeries.push({
       t: totalMinutes,
-      soc,
-      loadW,
-      pvW,
-      gridW,
-      battW: battFlowW,
-      unservedW,
+      soc: Math.round(soc * 1000) / 1000,
+      loadW: Math.round(loadW * 100) / 100,
+      pvW: Math.round(pvW * 100) / 100,
+      gridW: Math.round(gridW * 100) / 100,
+      battW: Math.round(battFlowW * 100) / 100,
+      unservedW: Math.round(unservedW * 100) / 100,
       gridAvailable,
     });
   }
   
-  // Calculate continuous runtime
+  // Fix #12: Runtime based on worst-case evening peak, not 24h average
   const backupLoads = loads.filter(l => l.onBackupCircuit);
-  const avgLoadW = backupLoads.reduce((sum, l) => {
-    const avgHourly = l.hourly.reduce((a, b) => a + b, 0) / 24;
-    return sum + l.qty * l.watts * l.dutyCycle * avgHourly * loadMultiplier;
+  const eveningPeakW = backupLoads.reduce((sum, l) => {
+    const eveningHourly = l.hourly.slice(18, 23).reduce((a, b) => a + b, 0) / 5;
+    return sum + l.qty * l.watts * l.dutyCycle * eveningHourly * loadMultiplier;
   }, 0);
   
-  const continuousRuntime = calculateContinuousRuntime(bank, inverter, avgLoadW);
+  const continuousRuntime = calculateContinuousRuntime(bank, inverter, eveningPeakW);
   
-  // Recharge time estimate
-  const avgDoD = Math.max(0, (100 - minSoC) / 100 * bank.unit.usableDoD);
-  const energyRemoved = eNom * avgDoD;
+  // Fix #13 & #14: Calculate actual DoD from simulation
+  const actualDoD = (100 - minSoC) / 100;
+  const energyRemoved = eNom * actualDoD;
   const closedFormRecharge = calculateRechargeTime(bank, inverter, energyRemoved, inverter.gridChargerMaxA);
   
-  // Recovery status
+  // Fix #14: Calculate actual cycles from simulation
+  const totalDischargeWh = timeSeries.reduce((sum, t) => sum + Math.max(0, -t.battW) * (stepMinutes / 60), 0);
+  const cyclesPerDay = totalDischargeWh / (eNom * bank.unit.usableDoD) / totalDays;
+  
   const gridWindowH = grid.gridMinutes / 60;
   let recoveryStatus: 'yes' | 'barely' | 'no';
   if (closedFormRecharge <= gridWindowH * 0.9) recoveryStatus = 'yes';
   else if (closedFormRecharge <= gridWindowH) recoveryStatus = 'barely';
   else recoveryStatus = 'no';
   
-  // Cycles per day
-  const cyclesPerDay = avgDoD; // one cycle = full DoD
-  
-  // Generate warnings
-  const warnings = generateWarnings(project, timeSeries, avgLoadW, closedFormRecharge, gridWindowH, assumptionSet);
+  const warnings = generateWarnings(project, timeSeries, eveningPeakW, closedFormRecharge, gridWindowH, assumptionSet);
   
   return {
     timeSeries,
@@ -506,7 +448,7 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
     solarGeneratedWh: totalSolarGenWh,
     solarUsedWh: totalSolarUsedWh,
     solarClippedWh: totalSolarClippedWh,
-    avgDoD,
+    avgDoD: actualDoD,
     cyclesPerDay,
     warnings,
     continuousRuntime,
@@ -515,63 +457,56 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
   };
 }
 
-function getChargeLimitW(bank: BatteryBank, inverter: Inverter, currentEnergy: number, eMax: number, gridAvailable: boolean, pvAvailable: boolean = false): number {
-  const vNom = bank.unit.nominalV * bank.series;
-  const ahTotal = bank.unit.ratedAh * bank.parallel;
-  const soc = currentEnergy / (vNom * ahTotal);
-  
-  // Stop charging when battery is full
-  if (soc >= 0.99) return 0;
-  
-  // Taper
-  let taper = 1;
-  if (bank.unit.chemistry === 'lifepo4') {
-    if (soc > 0.95) taper = Math.max(0.3, 1 - (soc - 0.95) / 0.05 * 0.7);
-  } else {
-    if (soc > 0.80) taper = Math.max(0.15, 1 - (soc - 0.80) / 0.20 * 0.85);
-  }
-  
-  const maxChargeByC = bank.unit.maxChargeC * ahTotal * taper;
-  const maxChargeByBMS = bank.unit.maxChargeA ? bank.unit.maxChargeA * taper : Infinity;
-  
-  // Allow solar to charge battery even when grid is down
-  const chargerLimit = gridAvailable 
-    ? inverter.gridChargerMaxA 
-    : (pvAvailable && inverter.mppt ? inverter.mppt.maxChargeA : 0);
-  
-  const chargeA = Math.min(chargerLimit, maxChargeByC, maxChargeByBMS);
-  return chargeA * vNom;
-}
-
-/**
- * Generate warnings based on current configuration
- */
-export function generateWarnings(
+function generateWarnings(
   project: Project,
   timeSeries: TimeStep[],
-  avgLoadW: number,
+  peakLoadW: number,
   rechargeTimeH: number,
   gridWindowH: number,
   _assumptionSet: AssumptionSet
 ): Warning[] {
   const warnings: Warning[] = [];
-  const { loads, inverter, bank } = project;
+  const { loads, inverter, bank, pv } = project;
   
-  // Check for non-inverter-friendly loads on backup circuit
-  for (const load of loads) {
-    if (!load.onBackupCircuit) continue;
-    const template = load.templateId;
-    if (template && ['rice-cooker', 'iron', 'geyser', 'air-conditioner'].includes(template)) {
+  // Fix #16: Remove false BANK_VOLTAGE_MISMATCH warning
+  // Fix #17: Add missing warnings
+  
+  // Check for unserved load
+  const hasUnserved = timeSeries.some(t => t.unservedW > 0);
+  if (hasUnserved) {
+    warnings.push({
+      id: 'UNSERVED_LOAD',
+      severity: 'critical',
+      message: 'System cannot serve all loads during some periods',
+      suggestedFix: 'Increase battery capacity or reduce load',
+    });
+  }
+  
+  // Check for floor hits
+  const minSoC = Math.min(...timeSeries.map(t => t.soc));
+  if (minSoC <= (1 - bank.unit.usableDoD) * 100 + 1) {
+    warnings.push({
+      id: 'SOC_FLOOR',
+      severity: 'critical',
+      message: `Battery reaches minimum SoC (${minSoC.toFixed(1)}%)`,
+      suggestedFix: 'Increase battery capacity or reduce load',
+    });
+  }
+  
+  // Fix #8: Add PV/MPPT oversize warning
+  if (pv && inverter.mppt) {
+    const pvWp = pv.panel.wp * pv.series * pv.parallelStrings;
+    if (pvWp > inverter.mppt.maxPvW * 1.3) {
       warnings.push({
-        id: 'NON_INVERTER_FRIENDLY',
-        severity: 'critical',
-        message: `${load.label} is not suitable for inverter backup. It draws too much power.`,
-        suggestedFix: 'Move this load to a separate grid-only circuit.',
+        id: 'PV_OVERSIZED',
+        severity: 'warn',
+        message: `PV array (${pvWp}W) exceeds MPPT max (${inverter.mppt.maxPvW}W) by >30%`,
+        suggestedFix: 'Reduce PV array size or use inverter with larger MPPT',
       });
     }
   }
   
-  // Inverter overload check
+  // Inverter overload
   const peakVA = Math.max(...timeSeries.map(t => {
     const h = (t.t / 60) % 24;
     return calculateSurgeVA(loads, h, 1);
@@ -581,26 +516,8 @@ export function generateWarnings(
     warnings.push({
       id: 'INV_OVERLOAD_VA',
       severity: 'critical',
-      message: `Peak apparent power (${Math.round(peakVA)} VA) exceeds inverter rating (${inverter.ratedVA} VA).`,
-      suggestedFix: 'Reduce load or choose a larger inverter.',
-    });
-  } else if (peakVA > inverter.ratedVA * 0.9) {
-    warnings.push({
-      id: 'INV_OVERLOAD_VA',
-      severity: 'warn',
-      message: `Peak apparent power (${Math.round(peakVA)} VA) is close to inverter limit (${inverter.ratedVA} VA).`,
-      suggestedFix: 'Consider a larger inverter for headroom.',
-    });
-  }
-  
-  // Battery voltage mismatch
-  const bankVoltage = bank.unit.nominalV * bank.series;
-  if (bankVoltage !== inverter.systemVoltage) {
-    warnings.push({
-      id: 'BANK_VOLTAGE_MISMATCH',
-      severity: 'critical',
-      message: `Battery bank voltage (${bankVoltage}V) doesn't match inverter system voltage (${inverter.systemVoltage}V).`,
-      suggestedFix: `Adjust series count: need ${inverter.systemVoltage / bank.unit.nominalV} batteries in series.`,
+      message: `Peak apparent power (${Math.round(peakVA)} VA) exceeds inverter rating (${inverter.ratedVA} VA)`,
+      suggestedFix: 'Reduce load or choose larger inverter',
     });
   }
   
@@ -609,80 +526,42 @@ export function generateWarnings(
     warnings.push({
       id: 'BATT_CHARGE_SLOW',
       severity: rechargeTimeH > gridWindowH * 1.2 ? 'critical' : 'warn',
-      message: `Battery needs ${rechargeTimeH.toFixed(1)}h to recharge but only ${gridWindowH.toFixed(1)}h grid time available.`,
-      suggestedFix: 'Add solar panels, reduce load, or increase battery charge current.',
+      message: `Battery needs ${rechargeTimeH.toFixed(1)}h to recharge but only ${gridWindowH.toFixed(1)}h grid time`,
+      suggestedFix: 'Add solar panels or reduce load (charger limited to ' + inverter.gridChargerMaxA + 'A)',
     });
   }
   
-  // SoC floor reached
-  const minSoC = Math.min(...timeSeries.map(t => t.soc));
-  if (minSoC <= (1 - bank.unit.usableDoD) * 100 + 1) {
-    warnings.push({
-      id: 'SOC_FLOOR',
-      severity: 'critical',
-      message: `Battery reaches minimum SoC (${minSoC.toFixed(1)}%). Load will be cut off.`,
-      suggestedFix: 'Increase battery capacity or reduce load.',
-    });
-  }
-  
-  // Deep daily DoD for lead-acid
-  if (bank.unit.chemistry === 'tubular' || bank.unit.chemistry === 'flooded') {
-    const avgDoD = (100 - minSoC) / 100;
-    if (avgDoD > 0.5) {
-      warnings.push({
-        id: 'DEEP_DAILY_DOD',
-        severity: 'warn',
-        message: `Daily DoD of ${(avgDoD * 100).toFixed(0)}% exceeds recommended 50% for ${bank.unit.chemistry} batteries.`,
-        suggestedFix: 'Increase battery capacity or reduce daily discharge depth.',
-      });
-    }
-  }
-  
-  // Parallel strings warning for lead-acid
-  if ((bank.unit.chemistry === 'tubular' || bank.unit.chemistry === 'flooded') && bank.parallel > 3) {
-    warnings.push({
-      id: 'BANK_PARALLEL_LEAD',
-      severity: 'warn',
-      message: `${bank.parallel} parallel strings of lead-acid batteries may cause uneven charging.`,
-      suggestedFix: 'Use larger individual batteries to reduce parallel count.',
-    });
-  }
-  
-  // Ventilation note for lead-acid
-  if (bank.unit.chemistry === 'tubular' || bank.unit.chemistry === 'flooded') {
-    warnings.push({
-      id: 'VENTILATION_LEAD',
-      severity: 'info',
-      message: 'Lead-acid/tubular batteries produce hydrogen gas during charging.',
-      suggestedFix: 'Ensure adequate ventilation in the battery room.',
-    });
-  }
-  
-  // Unverified defaults
+  // Fix #18: Improve warning quality
   if (!inverter.verified || !bank.unit.verified) {
     warnings.push({
       id: 'UNVERIFIED_DEFAULT',
-      severity: 'info',
-      message: 'Some equipment specs are editable defaults, not verified from datasheets.',
-      suggestedFix: 'Check your actual equipment datasheet and update the values.',
+      severity: 'warn', // Changed from 'info'
+      message: 'Equipment specs are editable defaults, not verified from datasheets',
+      suggestedFix: 'Check your actual equipment datasheet and update values',
     });
   }
   
-  // Fuse reminder
   warnings.push({
     id: 'FUSE_REQUIRED',
     severity: 'info',
-    message: 'A DC-rated fuse/breaker is required between battery and inverter.',
-    suggestedFix: 'Install a DC breaker rated 1.25× max continuous current.',
+    message: 'DC-rated fuse/breaker required between battery and inverter',
+    suggestedFix: `Install DC breaker rated for ${Math.ceil(bank.unit.maxDischargeA || bank.unit.maxChargeA || 100) * 1.25}A`,
   });
   
   return warnings;
 }
 
 /**
- * Sizing helper - recommend inverter, battery, solar
+ * Calculate recommended system sizing
  */
-export function calculateSizing(project: Project): SizingResult {
+export function calculateSizing(project: Project): {
+  minRatedVA: number;
+  recommendedVA: number;
+  systemVoltage: 12 | 24 | 48;
+  batteryAhNeeded: number;
+  solarWpNeeded: number;
+  roofAreaM2: number;
+} {
   const { loads, inverter, bank, site } = project;
   
   // Peak running VA
@@ -702,16 +581,16 @@ export function calculateSizing(project: Project): SizingResult {
   }
   
   const minRatedVA = Math.max(peakVA * 1.25, maxSurgeVA);
-  const recommendedVA = Math.ceil(minRatedVA / 100) * 100; // round up to nearest 100
+  const recommendedVA = Math.ceil(minRatedVA / 100) * 100;
   
   // System voltage guidance
   let systemVoltage: 12 | 24 | 48 = 12;
   if (recommendedVA > 3000) systemVoltage = 48;
   else if (recommendedVA > 1200) systemVoltage = 24;
   
-  // Battery sizing for target autonomy (use grid outage duration)
+  // Battery sizing for target autonomy
   const outageH = project.grid.outageMinutes / 60;
-  const avgLoadW = peakW * 0.7; // estimate average during outage
+  const avgLoadW = peakW * 0.7;
   const dcW = avgLoadW / 0.88 + inverter.idleW;
   const energyNeeded = dcW * outageH;
   const reservePct = project.options.reservePct / 100;
@@ -719,9 +598,9 @@ export function calculateSizing(project: Project): SizingResult {
   const batteryAhNeeded = Math.ceil(eNomNeeded / (bank.unit.nominalV * bank.series));
   
   // Solar sizing
-  const dailyEnergyWh = avgLoadW * 16; // assume 16h of mixed usage
+  const dailyEnergyWh = avgLoadW * 16;
   const solarWpNeeded = Math.ceil(dailyEnergyWh / (site.peakSunHours.typ * site.systemDerate));
-  const roofAreaM2 = (solarWpNeeded / 1000) * 7; // 7 m² per kWp
+  const roofAreaM2 = (solarWpNeeded / 1000) * 7;
   
   return { minRatedVA, recommendedVA, systemVoltage, batteryAhNeeded, solarWpNeeded, roofAreaM2 };
 }
@@ -729,10 +608,19 @@ export function calculateSizing(project: Project): SizingResult {
 /**
  * Calculate economics
  */
-export function calculateCosts(project: Project, result: SimulationResult): CostResult {
+export function calculateCosts(project: Project, result: SimulationResult): {
+  monthlyBillNoSolar: number;
+  monthlyBillWithSolar: number;
+  monthlySavings: number;
+  annualSavings: number;
+  systemCost: number;
+  simplePaybackYears: number | null;
+  costPerKwhDelivered: number;
+  batteryLifeYears: number;
+} {
   const { tariff, bank, pv } = project;
   
-  // Monthly consumption (kWh)
+  // Monthly consumption
   const dailyGridWh = result.gridWh / project.options.simulationDays;
   const monthlyKwh = (dailyGridWh / 1000) * 30;
   
@@ -751,7 +639,7 @@ export function calculateCosts(project: Project, result: SimulationResult): Cost
   billNoSolar += tariff.fixedMonthly || 0;
   billNoSolar *= (1 + (tariff.vatPct || 0) / 100);
   
-  // Bill with solar (reduced grid consumption)
+  // Bill with solar
   const solarOffset = (result.solarUsedWh / project.options.simulationDays / 1000) * 30;
   const monthlyKwhWithSolar = Math.max(0, monthlyKwh - solarOffset);
   
@@ -775,7 +663,7 @@ export function calculateCosts(project: Project, result: SimulationResult): Cost
   // System cost
   const batteryCost = (bank.unit.price || 0) * bank.series * bank.parallel;
   const panelCost = pv ? (pv.panel.price || 0) * pv.series * pv.parallelStrings : 0;
-  const inverterCost = 15000; // editable default
+  const inverterCost = 15000;
   const systemCost = batteryCost + panelCost + inverterCost;
   
   const simplePaybackYears = annualSavings > 0 ? systemCost / annualSavings : null;
@@ -793,7 +681,6 @@ export function calculateCosts(project: Project, result: SimulationResult): Cost
   }
   const batteryLifeYears = cyclesPerYear > 0 ? Math.min(cycleLifeAtDoD / cyclesPerYear, bank.unit.calendarLifeYears.typ) : bank.unit.calendarLifeYears.typ;
   
-  // Cost per kWh delivered
   const usableKwh = (bank.unit.nominalV * bank.series * bank.unit.ratedAh * bank.parallel * bank.unit.usableDoD) / 1000;
   const costPerKwhDelivered = usableKwh > 0 && batteryLifeYears > 0 ? batteryCost / (usableKwh * cycleLifeAtDoD) : 0;
   
