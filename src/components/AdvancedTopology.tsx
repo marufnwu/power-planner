@@ -271,7 +271,6 @@ export function AdvancedTopology({
           strokeWidth={gridAvailable ? 5 : 2}
           strokeDasharray={gridAvailable ? '12 6' : '6 6'}
           opacity={gridAvailable ? 1 : 0.4}
-          markerEnd={gridAvailable ? "url(#arrowhead-grid)" : "url(#arrowhead)"}
           strokeLinecap="round"
           filter={gridAvailable ? "url(#glow)" : ""}
         >
@@ -280,43 +279,22 @@ export function AdvancedTopology({
           )}
         </path>
         
-        {/* Grid connection label */}
-        {gridAvailable && (
-          <g transform="translate(220, 130)">
-            <rect x="-30" y="-12" width="60" height="24" rx="6" fill="#4f46e5" opacity="0.95" filter="url(#glow)" />
-            <text x="0" y="4" textAnchor="middle" fontSize="10" fill="white" fontFamily="var(--font-mono)" fontWeight="700">
-              GRID →
-            </text>
-          </g>
-        )}
-        
         {/* Solar → Inverter */}
         {hasSolar && (
-          <>
-            <path
-              d="M 640 130 Q 550 160 480 180"
-              fill="none"
-              stroke={solarW > 0 ? '#f59e0b' : '#e5e2db'}
-              strokeWidth={solarW > 0 ? 3 + (solarW / 1000) * 2 : 1.5}
-              strokeDasharray={solarW > 0 ? '10 5' : '5 5'}
-              opacity={solarW > 0 ? 1 : 0.4}
-              markerEnd={solarW > 0 ? 'url(#arrowhead-solar)' : 'url(#arrowhead)'}
-              strokeLinecap="round"
-              filter={solarW > 0 ? "url(#glow)" : ""}
-            >
-              {solarW > 0 && (
-                <animate attributeName="stroke-dashoffset" from="0" to="-30" dur="1.5s" repeatCount="indefinite" />
-              )}
-            </path>
+          <path
+            d="M 640 130 Q 550 160 480 180"
+            fill="none"
+            stroke={solarW > 0 ? '#f59e0b' : '#e5e2db'}
+            strokeWidth={solarW > 0 ? 3 + (solarW / 1000) * 2 : 1.5}
+            strokeDasharray={solarW > 0 ? '10 5' : '5 5'}
+            opacity={solarW > 0 ? 1 : 0.4}
+            strokeLinecap="round"
+            filter={solarW > 0 ? "url(#glow)" : ""}
+          >
             {solarW > 0 && (
-              <g transform="translate(560, 150)">
-                <rect x="-30" y="-12" width="60" height="24" rx="6" fill="#f59e0b" opacity="0.95" filter="url(#glow)" />
-                <text x="0" y="4" textAnchor="middle" fontSize="10" fill="white" fontFamily="var(--font-mono)" fontWeight="700">
-                  SOLAR →
-                </text>
-              </g>
+              <animate attributeName="stroke-dashoffset" from="0" to="-30" dur="1.5s" repeatCount="indefinite" />
             )}
-          </>
+          </path>
         )}
         
         {/* Inverter → Battery */}

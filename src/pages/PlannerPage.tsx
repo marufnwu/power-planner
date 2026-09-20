@@ -16,6 +16,7 @@ import { BatteryCustomizer } from '../components/BatteryCustomizer';
 import { useI18n } from '../lib/i18n';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, ReferenceLine } from 'recharts';
 import { Share2, Printer, ChevronDown, ChevronUp, Info, AlertTriangle, Check, Zap, Sun, Moon, Battery as BatteryIcon, Settings2, Plug, RefreshCw, X, Plus, ArrowRight, Trash2 } from 'lucide-react';
+import { DebugPanel } from '../components/DebugPanel';
 
 type PlannerStep = 'loads' | 'grid' | 'system' | 'results' | 'costs';
 
@@ -333,6 +334,14 @@ export function PlannerPage() {
           Link copied to clipboard
         </div>
       )}
+
+      {/* Debug Panel */}
+      <DebugPanel
+        project={project}
+        enhancedProject={enhancedProject}
+        result={result}
+        calcSettings={calcSettings}
+      />
     </div>
   );
 }
