@@ -100,73 +100,73 @@ export function PlannerPage() {
   const currentIdx = steps.indexOf(step);
 
   return (
-    <div className="pt-20 pb-16">
-      <div className="container-ultra">
-        {/* Top bar */}
-        <div className="flex items-center justify-between mb-8 pt-4">
-          <div>
-            <div className="eyebrow mb-1">{t('planner.title')}</div>
-            <h1 className="text-2xl font-medium tracking-tight">{t('planner.title')}</h1>
+    <div className="pt-16 md:pt-20 pb-20 md:pb-16">
+      <div className="px-4 md:px-6 lg:px-8 max-w-[1520px] mx-auto">
+        {/* Top bar - mobile-first */}
+        <div className="flex items-center justify-between mb-4 md:mb-8 pt-2 md:pt-4">
+          <div className="min-w-0 flex-1">
+            <div className="eyebrow mb-0.5 md:mb-1 text-[10px] md:text-xs">{t('planner.title')}</div>
+            <h1 className="text-lg md:text-2xl font-medium tracking-tight truncate">{t('planner.title')}</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <Link to="/compare" className="btn-ghost" title="Compare configurations">
-              <Share2 className="w-4 h-4" />
-              <span className="hidden md:inline">Compare</span>
+          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0 ml-2">
+            <Link to="/compare" className="p-2 md:p-2.5 rounded-lg" style={{ color: 'var(--muted)' }} title="Compare">
+              <Share2 className="w-4 h-4 md:w-5 md:h-5" />
             </Link>
-            <button onClick={shareUrl} className="btn-ghost" title="Share">
-              <Share2 className="w-4 h-4" />
-              <span className="hidden md:inline">Share</span>
+            <button onClick={shareUrl} className="p-2 md:p-2.5 rounded-lg" style={{ color: 'var(--muted)' }} title="Share">
+              <Share2 className="w-4 h-4 md:w-5 md:h-5" />
             </button>
-            <button onClick={() => window.print()} className="btn-ghost" title="Print">
-              <Printer className="w-4 h-4" />
-              <span className="hidden md:inline">Print</span>
+            <button onClick={() => window.print()} className="p-2 md:p-2.5 rounded-lg hidden md:block" style={{ color: 'var(--muted)' }} title="Print">
+              <Printer className="w-4 h-4 md:w-5 md:h-5" />
             </button>
           </div>
         </div>
 
-        {/* Step tabs */}
-        <div className="flex gap-1 mb-8 overflow-x-auto pb-2">
+        {/* Step tabs - mobile scrollable */}
+        <div className="flex gap-1.5 md:gap-2 mb-4 md:mb-8 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
           {steps.map((s, i) => (
             <button
               key={s}
               onClick={() => setStep(s)}
-              className="px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap transition-all"
+              className="px-3 py-2 md:px-4 md:py-2.5 text-xs md:text-sm font-medium rounded-full whitespace-nowrap transition-all flex-shrink-0"
               style={{
                 background: step === s ? 'var(--ink)' : 'transparent',
                 color: step === s ? 'var(--paper)' : 'var(--muted)',
                 border: step === s ? 'none' : '1px solid var(--border)',
+                minHeight: '40px',
               }}
             >
-              <span className="num mr-2 opacity-50">{String(i + 1).padStart(2, '0')}</span>
+              <span className="num mr-1 md:mr-2 opacity-50">{String(i + 1).padStart(2, '0')}</span>
               {s === 'loads' ? t('planner.loads') : s === 'grid' ? t('planner.grid') : s === 'system' ? t('planner.system') : s === 'results' ? t('planner.results') : t('planner.costs')}
             </button>
           ))}
         </div>
 
+        {/* Mobile: Results on top, then inputs */}
+        {/* Desktop: Inputs left, results right */}
+        
+        {/* Mobile results summary - always visible at top */}
+        <div className="lg:hidden mb-4 md:mb-6">
+          <MobileResultSummary 
+            result={result} 
+            project={project} 
+            totalLoadW={totalLoadW}
+            solarW={solarW}
+            batteryCharging={batteryCharging}
+          />
+        </div>
+
         {/* Main content area */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 lg:gap-8">
           {/* Left column — inputs */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className="lg:col-span-7 space-y-4 md:space-y-6">
             {step === 'loads' && (
-              <LoadsStep
-                project={project}
-                updateLoad={updateLoad}
-                addLoad={addLoad}
-                removeLoad={removeLoad}
-              />
+              <LoadsStep project={project} updateLoad={updateLoad} addLoad={addLoad} removeLoad={removeLoad} />
             )}
             {step === 'grid' && (
               <GridStep project={project} setProject={setProject} />
             )}
             {step === 'system' && (
-              <SystemStep 
-                project={project} 
-                setProject={setProject} 
-                sizing={sizing} 
-                result={result}
-                calcSettings={calcSettings}
-                setCalcSettings={setCalcSettings}
-              />
+              <SystemStep project={project} setProject={setProject} sizing={sizing} result={result} calcSettings={calcSettings} setCalcSettings={setCalcSettings} />
             )}
             {step === 'results' && (
               <ResultsDetail result={result} project={project} />
@@ -175,29 +175,27 @@ export function PlannerPage() {
               <CostsStep costs={costs} result={result} project={project} />
             )}
 
-            {/* Navigation */}
-            <div className="flex justify-between pt-4">
+            {/* Navigation - mobile-first */}
+            <div className="flex justify-between gap-3 pt-2 md:pt-4 sticky bottom-0 py-3 -mx-4 px-4 md:mx-0 md:px-0" style={{ background: 'var(--paper)' }}>
               {currentIdx > 0 ? (
-                <button onClick={() => setStep(steps[currentIdx - 1])} className="btn-ghost">
+                <button onClick={() => setStep(steps[currentIdx - 1])} className="btn-ghost flex-1 md:flex-none">
                   ← Back
                 </button>
-              ) : <div />}
-            {currentIdx < steps.length - 1 && (
-              <button onClick={() => setStep(steps[currentIdx + 1])} className="btn-primary">
-                Continue <ArrowRight className="w-4 h-4" />
-              </button>
-            )}            </div>
+              ) : <div className="flex-1 md:flex-none" />}
+              {currentIdx < steps.length - 1 && (
+                <button onClick={() => setStep(steps[currentIdx + 1])} className="btn-primary flex-1 md:flex-none">
+                  Continue <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Right column — live results (sticky on desktop) */}
-          <div className="lg:col-span-5">
+          {/* Right column — live results (desktop only, mobile uses summary above) */}
+          <div className="hidden lg:block lg:col-span-5">
             <div className="lg:sticky lg:top-24 space-y-6">
-              {/* Result Hero */}
-              <div className="p-6 md:p-8 rounded-3xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+              <div className="p-8 rounded-3xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                 <ResultHero project={project} result={result} totalLoadW={totalLoadW} />
               </div>
-
-              {/* System Topology */}
               <div className="p-4 rounded-3xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                 <div className="px-2 pt-2 pb-3 flex items-center justify-between">
                   <div className="eyebrow">System topology</div>
@@ -221,8 +219,6 @@ export function PlannerPage() {
                   gridPower={result.gridWh / (project.options.simulationDays * 24)}
                 />
               </div>
-
-              {/* Quick stats */}
               <div className="grid grid-cols-2 gap-3">
                 <QuickStat label="Runtime" value={`${result.continuousRuntime.toFixed(1)}h`} />
                 <QuickStat label="Recharge" value={`${result.closedFormRecharge.toFixed(1)}h`} />
@@ -236,10 +232,72 @@ export function PlannerPage() {
 
       {/* Share toast */}
       {showShareToast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-sm animate-fade-up" style={{ background: 'var(--ink)', color: 'var(--paper)' }}>
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-sm animate-fade-up z-50" style={{ background: 'var(--ink)', color: 'var(--paper)' }}>
           Link copied to clipboard
         </div>
       )}
+    </div>
+  );
+}
+
+// ============================================================
+// MOBILE RESULT SUMMARY - Compact results for mobile top
+// ============================================================
+function MobileResultSummary({ result, project, totalLoadW, solarW, batteryCharging }: {
+  result: SimulationResult;
+  project: Project;
+  totalLoadW: number;
+  solarW: number;
+  batteryCharging: boolean;
+}) {
+  const runtime = result.continuousRuntime;
+  const finiteRuntime = Number.isFinite(runtime) && runtime < 100;
+  
+  return (
+    <div className="rounded-2xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+      {/* Big number */}
+      <div className="flex items-baseline gap-2 mb-2">
+        <span className="text-3xl font-medium num" style={{ color: 'var(--ink)' }}>
+          {finiteRuntime ? runtime.toFixed(1) : '∞'}
+        </span>
+        <span className="text-sm" style={{ color: 'var(--muted)' }}>hours runtime</span>
+      </div>
+      
+      {/* Context */}
+      <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
+        {project.inverter.ratedVA}VA · {project.bank.unit.ratedAh}Ah {project.bank.unit.chemistry} · {totalLoadW.toFixed(0)}W load
+      </p>
+      
+      {/* Recovery status */}
+      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+        result.recoveryStatus === 'yes' ? '' : result.recoveryStatus === 'barely' ? '' : ''
+      }`} style={{
+        background: result.recoveryStatus === 'yes' ? 'var(--success-soft)' : result.recoveryStatus === 'barely' ? 'var(--warning-soft)' : 'var(--danger-soft)',
+        color: result.recoveryStatus === 'yes' ? 'var(--success)' : result.recoveryStatus === 'barely' ? 'var(--warning)' : 'var(--danger)',
+      }}>
+        <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{
+          background: result.recoveryStatus === 'yes' ? 'var(--success)' : result.recoveryStatus === 'barely' ? 'var(--warning)' : 'var(--danger)',
+        }} />
+        {result.recoveryStatus === 'yes' ? 'Recovers' : result.recoveryStatus === 'barely' ? 'Barely recovers' : "Doesn't recover"}
+      </div>
+      
+      {/* Mini stats */}
+      <div className="grid grid-cols-3 gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+        <div className="text-center">
+          <div className="text-[10px]" style={{ color: 'var(--muted)' }}>Recharge</div>
+          <div className="text-sm font-semibold num">{result.closedFormRecharge.toFixed(1)}h</div>
+        </div>
+        <div className="text-center">
+          <div className="text-[10px]" style={{ color: 'var(--muted)' }}>Min SoC</div>
+          <div className="text-sm font-semibold num">{result.minSoC.toFixed(0)}%</div>
+        </div>
+        <div className="text-center">
+          <div className="text-[10px]" style={{ color: 'var(--muted)' }}>Battery</div>
+          <div className="text-sm font-semibold num" style={{ color: batteryCharging ? 'var(--success)' : 'var(--warning)' }}>
+            {batteryCharging ? '↻' : '↯'}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -485,42 +543,44 @@ function LoadRow({ load, onUpdate, onRemove }: { load: LoadItem; onUpdate: (u: P
 // ============================================================
 function GridStep({ project, setProject }: { project: Project; setProject: (fn: (p: Project) => Project) => void }) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 md:space-y-8">
       <div>
-        <h2 className="text-xl font-medium tracking-tight mb-2">Grid & load-shedding</h2>
-        <p className="text-sm" style={{ color: 'var(--muted)' }}>How often is the power cut, and for how long?</p>
+        <h2 className="text-lg md:text-xl font-medium tracking-tight mb-1 md:mb-2">Grid & load-shedding</h2>
+        <p className="text-xs md:text-sm" style={{ color: 'var(--muted)' }}>How often is the power cut, and for how long?</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="p-5 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <div className="eyebrow mb-3">Outage duration</div>
-          <div className="display-md num mb-4" style={{ color: 'var(--ink)' }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
+        <div className="p-3 md:p-5 rounded-xl md:rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <div className="eyebrow mb-2 md:mb-3 text-[10px] md:text-xs">Outage duration</div>
+          <div className="text-2xl md:text-3xl font-medium num mb-3 md:mb-4" style={{ color: 'var(--ink)' }}>
             {project.grid.outageMinutes}
-            <span className="text-lg ml-1" style={{ color: 'var(--muted)' }}>min</span>
+            <span className="text-sm md:text-lg ml-1" style={{ color: 'var(--muted)' }}>min</span>
           </div>
           <input
             type="range" min={15} max={300} step={15}
             value={project.grid.outageMinutes}
             onChange={e => setProject(p => ({ ...p, grid: { ...p.grid, outageMinutes: +e.target.value } }))}
+            className="w-full"
           />
         </div>
-        <div className="p-5 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <div className="eyebrow mb-3">Grid between outages</div>
-          <div className="display-md num mb-4" style={{ color: 'var(--ink)' }}>
+        <div className="p-3 md:p-5 rounded-xl md:rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <div className="eyebrow mb-2 md:mb-3 text-[10px] md:text-xs">Grid between outages</div>
+          <div className="text-2xl md:text-3xl font-medium num mb-3 md:mb-4" style={{ color: 'var(--ink)' }}>
             {project.grid.gridMinutes}
-            <span className="text-lg ml-1" style={{ color: 'var(--muted)' }}>min</span>
+            <span className="text-sm md:text-lg ml-1" style={{ color: 'var(--muted)' }}>min</span>
           </div>
           <input
             type="range" min={30} max={480} step={15}
             value={project.grid.gridMinutes}
             onChange={e => setProject(p => ({ ...p, grid: { ...p.grid, gridMinutes: +e.target.value } }))}
+            className="w-full"
           />
         </div>
       </div>
 
       <div>
-        <div className="eyebrow mb-3">Operating mode</div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div className="eyebrow mb-2 md:mb-3 text-[10px] md:text-xs">Operating mode</div>
+        <div className="grid grid-cols-2 gap-2 md:gap-3">
           {[
             { value: 'ips', label: 'IPS', desc: 'Grid charges battery' },
             { value: 'utility_first', label: 'Utility', desc: 'Grid + PV charges' },
@@ -530,15 +590,15 @@ function GridStep({ project, setProject }: { project: Project; setProject: (fn: 
             <button
               key={mode.value}
               onClick={() => setProject(p => ({ ...p, options: { ...p.options, mode: mode.value as any } }))}
-              className="p-4 rounded-xl text-left transition-all"
+              className="p-3 md:p-4 rounded-lg md:rounded-xl text-left transition-all min-h-[64px] md:min-h-[80px]"
               style={{
                 background: project.options.mode === mode.value ? 'var(--ink)' : 'var(--surface)',
                 color: project.options.mode === mode.value ? 'var(--paper)' : 'var(--ink)',
                 border: project.options.mode === mode.value ? '1px solid var(--ink)' : '1px solid var(--border)',
               }}
             >
-              <div className="font-medium text-sm">{mode.label}</div>
-              <div className="text-xs mt-1 opacity-60">{mode.desc}</div>
+              <div className="font-medium text-xs md:text-sm">{mode.label}</div>
+              <div className="text-[10px] md:text-xs mt-0.5 md:mt-1 opacity-60">{mode.desc}</div>
             </button>
           ))}
         </div>
@@ -787,53 +847,53 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Scenario Comparison */}
       <div>
-        <div className="eyebrow mb-3">Runtime by scenario</div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        <div className="eyebrow mb-2 md:mb-3 text-[10px] md:text-xs">Runtime by scenario</div>
+        <div className="grid grid-cols-1 gap-2 md:gap-3 md:grid-cols-3 mb-3 md:mb-4">
           {scenarioRuntimes.map(({ scenario: s, runtime, avgLoadW }) => (
             <button
               key={s}
               onClick={() => setScenario(s)}
-              className="p-4 rounded-xl text-left transition-all"
+              className="p-3 md:p-4 rounded-lg md:rounded-xl text-left transition-all min-h-[80px] md:min-h-[100px]"
               style={{
                 background: scenario === s ? 'var(--ink)' : 'var(--surface)',
                 color: scenario === s ? 'var(--paper)' : 'var(--ink)',
                 border: scenario === s ? '1px solid var(--ink)' : '1px solid var(--border)',
               }}
             >
-              <div className="text-xs mb-1 opacity-60 flex items-center gap-1">
+              <div className="text-[10px] md:text-xs mb-1 opacity-60 flex items-center gap-1">
                 {s === 'day_outage' && (
                   <>
                     <Sun className="w-3 h-3" />
-                    <span>Day outage (6am–6pm)</span>
+                    <span>Day (6am–6pm)</span>
                   </>
                 )}
                 {s === 'night_outage' && (
                   <>
                     <Moon className="w-3 h-3" />
-                    <span>Night outage (6pm–6am)</span>
+                    <span>Night (6pm–6am)</span>
                   </>
                 )}
                 {s === 'worst_case' && (
                   <>
                     <Zap className="w-3 h-3" />
-                    <span>Worst case (all day)</span>
+                    <span>Worst case</span>
                   </>
                 )}
               </div>
-              <div className="text-2xl font-medium num">
+              <div className="text-xl md:text-2xl font-medium num">
                 {isFinite(runtime) ? runtime.toFixed(1) : '∞'}
-                <span className="text-sm ml-1 opacity-60">h</span>
+                <span className="text-xs md:text-sm ml-1 opacity-60">h</span>
               </div>
-              <div className="text-xs mt-1 opacity-60 num">
+              <div className="text-[10px] md:text-xs mt-1 opacity-60 num">
                 avg {avgLoadW.toFixed(0)}W
               </div>
             </button>
           ))}
         </div>
-        <p className="text-xs" style={{ color: 'var(--muted)' }}>
+        <p className="text-[10px] md:text-xs" style={{ color: 'var(--muted)' }}>
           {scenario === 'day_outage' && 'Day outages: lights not needed, fans critical. Runtime is usually longer.'}
           {scenario === 'night_outage' && 'Night outages: lights essential, fans + TV on. Runtime is usually shorter.'}
           {scenario === 'worst_case' && 'Worst case: all loads running. Use this for conservative sizing.'}
@@ -841,15 +901,15 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
       </div>
 
       {/* Outage Cycle Analysis */}
-      <div className="p-5 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-        <div className="flex items-center justify-between mb-4">
+      <div className="p-3 md:p-5 rounded-xl md:rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-3 md:mb-4">
           <div>
-            <div className="eyebrow">Outage cycle balance</div>
-            <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+            <div className="eyebrow text-[10px] md:text-xs">Outage cycle balance</div>
+            <p className="text-[10px] md:text-xs mt-0.5 md:mt-1" style={{ color: 'var(--muted)' }}>
               Does the battery recover between outages?
             </p>
           </div>
-          <div className={`badge ${cycleAnalysis.recovers ? 'badge-success' : 'badge-danger'} flex items-center gap-1`}>
+          <div className={`badge ${cycleAnalysis.recovers ? 'badge-success' : 'badge-danger'} flex items-center gap-1 text-[10px] md:text-xs`}>
             {cycleAnalysis.recovers ? (
               <>
                 <Check className="w-3 h-3" />
@@ -865,12 +925,12 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
         </div>
 
         {/* Visual cycle representation */}
-        <div className="mb-4">
+        <div className="mb-3 md:mb-4">
           <div className="flex items-center gap-2 mb-2">
-            <div className="flex-1 h-8 rounded-lg overflow-hidden flex" style={{ border: '1px solid var(--border)' }}>
+            <div className="flex-1 h-7 md:h-8 rounded-lg overflow-hidden flex" style={{ border: '1px solid var(--border)' }}>
               {/* Outage phase */}
               <div
-                className="flex items-center justify-center text-xs font-medium"
+                className="flex items-center justify-center text-[10px] md:text-xs font-medium"
                 style={{
                   width: `${(cycleAnalysis.outageH / (cycleAnalysis.outageH + cycleAnalysis.gridH)) * 100}%`,
                   background: 'var(--danger-soft)',
@@ -881,7 +941,7 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
               </div>
               {/* Grid phase */}
               <div
-                className="flex items-center justify-center text-xs font-medium"
+                className="flex items-center justify-center text-[10px] md:text-xs font-medium"
                 style={{
                   width: `${(cycleAnalysis.gridH / (cycleAnalysis.outageH + cycleAnalysis.gridH)) * 100}%`,
                   background: 'var(--success-soft)',
@@ -892,60 +952,60 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
               </div>
             </div>
           </div>
-          <div className="flex justify-between text-xs" style={{ color: 'var(--muted)' }}>
+          <div className="flex justify-between text-[10px] md:text-xs" style={{ color: 'var(--muted)' }}>
             <span className="flex items-center gap-1">
               <Zap className="w-3 h-3" />
-              Outage (discharge)
+              Outage
             </span>
             <span className="flex items-center gap-1">
               <Plug className="w-3 h-3" />
-              Grid (recharge)
+              Grid
             </span>
           </div>
         </div>
 
-        {/* Energy balance */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="p-3 rounded-lg" style={{ background: 'var(--danger-soft)' }}>
-            <div className="text-xs mb-1" style={{ color: 'var(--danger)' }}>Energy used during outage</div>
-            <div className="text-lg font-medium num" style={{ color: 'var(--danger)' }}>
+        {/* Energy balance - stack on mobile */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 mb-3 md:mb-4">
+          <div className="p-2 md:p-3 rounded-lg" style={{ background: 'var(--danger-soft)' }}>
+            <div className="text-[10px] md:text-xs mb-0.5 md:mb-1" style={{ color: 'var(--danger)' }}>Energy used</div>
+            <div className="text-base md:text-lg font-medium num" style={{ color: 'var(--danger)' }}>
               {(cycleAnalysis.energyUsedWh / 1000).toFixed(2)} kWh
             </div>
-            <div className="text-xs mt-1 num" style={{ color: 'var(--muted)' }}>
+            <div className="text-[10px] md:text-xs mt-0.5 md:mt-1 num" style={{ color: 'var(--muted)' }}>
               {cycleAnalysis.avgLoadW.toFixed(0)}W × {cycleAnalysis.outageH.toFixed(1)}h
             </div>
           </div>
-          <div className="p-3 rounded-lg" style={{ background: 'var(--success-soft)' }}>
-            <div className="text-xs mb-1" style={{ color: 'var(--success)' }}>Recharge capacity</div>
-            <div className="text-lg font-medium num" style={{ color: 'var(--success)' }}>
+          <div className="p-2 md:p-3 rounded-lg" style={{ background: 'var(--success-soft)' }}>
+            <div className="text-[10px] md:text-xs mb-0.5 md:mb-1" style={{ color: 'var(--success)' }}>Recharge capacity</div>
+            <div className="text-base md:text-lg font-medium num" style={{ color: 'var(--success)' }}>
               {cycleAnalysis.chargeA.toFixed(0)}A · {cycleAnalysis.chargeW.toFixed(0)}W
             </div>
-            <div className="text-xs mt-1 num" style={{ color: 'var(--muted)' }}>
+            <div className="text-[10px] md:text-xs mt-0.5 md:mt-1 num" style={{ color: 'var(--muted)' }}>
               Grid charger + {project.pv ? 'solar' : 'no solar'}
             </div>
           </div>
         </div>
 
         {/* Recharge time */}
-        <div className="p-3 rounded-lg mb-3" style={{ background: cycleAnalysis.recovers ? 'var(--success-soft)' : 'var(--danger-soft)' }}>
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-xs font-medium" style={{ color: cycleAnalysis.recovers ? 'var(--success)' : 'var(--danger)' }}>
+        <div className="p-2 md:p-3 rounded-lg mb-2 md:mb-3" style={{ background: cycleAnalysis.recovers ? 'var(--success-soft)' : 'var(--danger-soft)' }}>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-1 md:gap-2 mb-1 md:mb-2">
+            <div className="text-[10px] md:text-xs font-medium" style={{ color: cycleAnalysis.recovers ? 'var(--success)' : 'var(--danger)' }}>
               Time to recharge
             </div>
-            <div className="text-xs num" style={{ color: 'var(--muted)' }}>
-              {cycleAnalysis.gridUtilization.toFixed(0)}% of grid window used
+            <div className="text-[10px] md:text-xs num" style={{ color: 'var(--muted)' }}>
+              {cycleAnalysis.gridUtilization.toFixed(0)}% of grid window
             </div>
           </div>
-          <div className="flex items-baseline gap-2">
-            <div className="text-2xl font-medium num" style={{ color: cycleAnalysis.recovers ? 'var(--success)' : 'var(--danger)' }}>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <div className="text-xl md:text-2xl font-medium num" style={{ color: cycleAnalysis.recovers ? 'var(--success)' : 'var(--danger)' }}>
               {cycleAnalysis.rechargeTimeH.toFixed(1)}h
             </div>
-            <div className="text-sm" style={{ color: 'var(--muted)' }}>
+            <div className="text-xs md:text-sm" style={{ color: 'var(--muted)' }}>
               needed / {cycleAnalysis.gridH.toFixed(1)}h available
             </div>
           </div>
           {project.pv && cycleAnalysis.solarRechargeWh > 0 && (
-            <div className="text-xs mt-2 num" style={{ color: 'var(--muted)' }}>
+            <div className="text-[10px] md:text-xs mt-1 md:mt-2 num" style={{ color: 'var(--muted)' }}>
               Solar contributes {(cycleAnalysis.solarRechargeWh / 1000).toFixed(2)} kWh during grid time
             </div>
           )}
@@ -953,10 +1013,10 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
 
         {/* Recommendation */}
         {!cycleAnalysis.recovers && (
-          <div className="p-3 rounded-lg text-sm" style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}>
-            <strong>Problem:</strong> Battery needs {cycleAnalysis.rechargeTimeH.toFixed(1)}h to recharge but only has {cycleAnalysis.gridH.toFixed(1)}h grid time. It will gradually drain over multiple outages.
-            <div className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
-              Solutions: Add solar panels · Increase grid charger current · Reduce load · Increase battery capacity
+          <div className="p-2 md:p-3 rounded-lg text-xs md:text-sm" style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}>
+            <strong>Problem:</strong> Battery needs {cycleAnalysis.rechargeTimeH.toFixed(1)}h to recharge but only has {cycleAnalysis.gridH.toFixed(1)}h grid time.
+            <div className="mt-1 md:mt-2 text-[10px] md:text-xs" style={{ color: 'var(--muted)' }}>
+              Solutions: Add solar · Increase charge current · Reduce load · Larger battery
             </div>
           </div>
         )}
@@ -964,9 +1024,9 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
 
       {/* SoC Chart */}
       <div>
-        <div className="eyebrow mb-3">Battery state of charge</div>
-        <div className="p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <div className="h-56">
+        <div className="eyebrow mb-2 md:mb-3 text-[10px] md:text-xs">Battery state of charge</div>
+        <div className="p-2 md:p-4 rounded-xl md:rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <div className="h-40 md:h-56">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
                 <defs>
@@ -976,10 +1036,10 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="time" tick={{ fontSize: 10, fill: 'var(--muted)' }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: 'var(--muted)' }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="time" tick={{ fontSize: 9, fill: 'var(--muted)' }} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: 'var(--muted)' }} axisLine={false} tickLine={false} width={30} />
                 <Tooltip
-                  contentStyle={{ background: 'var(--ink)', border: 'none', borderRadius: '8px', color: 'var(--paper)', fontSize: '12px' }}
+                  contentStyle={{ background: 'var(--ink)', border: 'none', borderRadius: '8px', color: 'var(--paper)', fontSize: '11px' }}
                   formatter={(value: number) => [`${value}%`, 'SoC']}
                 />
                 <ReferenceLine y={20} stroke="var(--danger)" strokeDasharray="3 3" />
@@ -993,9 +1053,9 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
       {/* Warnings */}
       {result.warnings.filter(w => w.severity !== 'info').length > 0 && (
         <div>
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-2 md:mb-3">
             <AlertTriangle className="w-4 h-4" style={{ color: 'var(--warning)' }} />
-            <div className="eyebrow">What to watch out for</div>
+            <div className="eyebrow text-[10px] md:text-xs">What to watch out for</div>
           </div>
           <div className="space-y-2">
             {result.warnings.filter(w => w.severity !== 'info').sort((a, b) => {
@@ -1004,18 +1064,18 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
             }).map((w, i) => (
               <div
                 key={i}
-                className="p-4 rounded-xl flex items-start gap-3"
+                className="p-2 md:p-4 rounded-lg md:rounded-xl flex items-start gap-2 md:gap-3"
                 style={{
                   background: w.severity === 'critical' ? 'var(--danger-soft)' : 'var(--warning-soft)',
                   border: `1px solid ${w.severity === 'critical' ? '#fecaca' : '#fde68a'}`,
                 }}
               >
-                <span className={`badge ${w.severity === 'critical' ? 'badge-danger' : 'badge-warning'}`}>
+                <span className={`badge ${w.severity === 'critical' ? 'badge-danger' : 'badge-warning'} text-[9px] md:text-xs flex-shrink-0`}>
                   {w.severity}
                 </span>
-                <div className="flex-1 text-sm">
-                  <p className="font-medium">{w.message}</p>
-                  <p className="text-xs mt-1 flex items-start gap-1" style={{ color: 'var(--muted)' }}>
+                <div className="flex-1 min-w-0 text-xs md:text-sm">
+                  <p className="font-medium leading-snug">{w.message}</p>
+                  <p className="text-[10px] md:text-xs mt-1 flex items-start gap-1" style={{ color: 'var(--muted)' }}>
                     <ArrowRight className="w-3 h-3 flex-shrink-0 mt-0.5" />
                     <span>{w.suggestedFix}</span>
                   </p>
@@ -1029,12 +1089,12 @@ function ResultsDetail({ result, project }: { result: SimulationResult; project:
       {/* Show the math */}
       <button
         onClick={() => setShowMath(!showMath)}
-        className="w-full flex items-center justify-between p-4 rounded-xl text-left transition-colors"
+        className="w-full flex items-center justify-between p-3 md:p-4 rounded-lg md:rounded-xl text-left transition-colors min-h-[48px]"
         style={{ background: 'var(--paper-warm)', border: '1px solid var(--border)' }}
       >
         <div className="flex items-center gap-2">
           <Settings2 className="w-4 h-4" style={{ color: 'var(--muted)' }} />
-          <span className="text-sm font-medium">Show the math</span>
+          <span className="text-xs md:text-sm font-medium">Show the math</span>
         </div>
         {showMath ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>
@@ -1059,56 +1119,56 @@ function CostsStep({ costs, result, project }: {
   project: Project;
 }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
-        <h2 className="text-xl font-medium tracking-tight mb-2">Cost analysis</h2>
-        <p className="text-sm" style={{ color: 'var(--muted)' }}>Monthly savings and payback based on your tariff and solar generation.</p>
+        <h2 className="text-lg md:text-xl font-medium tracking-tight mb-1 md:mb-2">Cost analysis</h2>
+        <p className="text-xs md:text-sm" style={{ color: 'var(--muted)' }}>Monthly savings and payback based on your tariff and solar generation.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="p-5 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <div className="eyebrow mb-2">Monthly bill (no solar)</div>
-          <div className="display-md num">৳{costs.monthlyBillNoSolar.toFixed(0)}</div>
+      <div className="grid grid-cols-1 gap-2 md:gap-3 md:grid-cols-3">
+        <div className="p-3 md:p-5 rounded-xl md:rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <div className="eyebrow mb-1 md:mb-2 text-[10px] md:text-xs">Monthly bill (no solar)</div>
+          <div className="text-xl md:text-2xl font-medium num">৳{costs.monthlyBillNoSolar.toFixed(0)}</div>
         </div>
-        <div className="p-5 rounded-2xl" style={{ background: 'var(--success-soft)', border: '1px solid #bbf7d0' }}>
-          <div className="eyebrow mb-2" style={{ color: 'var(--success)' }}>Monthly savings</div>
-          <div className="display-md num" style={{ color: 'var(--success)' }}>৳{costs.monthlySavings.toFixed(0)}</div>
+        <div className="p-3 md:p-5 rounded-xl md:rounded-2xl" style={{ background: 'var(--success-soft)', border: '1px solid #bbf7d0' }}>
+          <div className="eyebrow mb-1 md:mb-2 text-[10px] md:text-xs" style={{ color: 'var(--success)' }}>Monthly savings</div>
+          <div className="text-xl md:text-2xl font-medium num" style={{ color: 'var(--success)' }}>৳{costs.monthlySavings.toFixed(0)}</div>
         </div>
-        <div className="p-5 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <div className="eyebrow mb-2">System cost</div>
-          <div className="display-md num">৳{costs.systemCost.toLocaleString()}</div>
+        <div className="p-3 md:p-5 rounded-xl md:rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <div className="eyebrow mb-1 md:mb-2 text-[10px] md:text-xs">System cost</div>
+          <div className="text-xl md:text-2xl font-medium num break-all">৳{costs.systemCost.toLocaleString()}</div>
         </div>
       </div>
 
       {costs.simplePaybackYears !== null && (
-        <div className="p-5 rounded-2xl flex items-center justify-between" style={{ background: 'var(--paper-warm)', border: '1px solid var(--border)' }}>
+        <div className="p-3 md:p-5 rounded-xl md:rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-2" style={{ background: 'var(--paper-warm)', border: '1px solid var(--border)' }}>
           <div>
-            <div className="eyebrow mb-1">Simple payback</div>
-            <div className="display-md num">{costs.simplePaybackYears.toFixed(1)} years</div>
+            <div className="eyebrow mb-1 text-[10px] md:text-xs">Simple payback</div>
+            <div className="text-xl md:text-2xl font-medium num">{costs.simplePaybackYears.toFixed(1)} years</div>
           </div>
-          <div className="text-right text-xs" style={{ color: 'var(--muted)' }}>
+          <div className="text-xs" style={{ color: 'var(--muted)' }}>
             {costs.simplePaybackYears > 10 ? 'Long payback — verify assumptions' : 'Reasonable payback period'}
           </div>
         </div>
       )}
 
-      <div className="p-5 rounded-2xl space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-        <div className="eyebrow">Details</div>
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="flex justify-between">
+      <div className="p-3 md:p-5 rounded-xl md:rounded-2xl space-y-2 md:space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <div className="eyebrow text-[10px] md:text-xs">Details</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 text-xs md:text-sm">
+          <div className="flex justify-between py-1.5" style={{ borderBottom: '1px solid var(--border)' }}>
             <span style={{ color: 'var(--muted)' }}>Battery life</span>
             <span className="num font-medium">{costs.batteryLifeYears.toFixed(1)} years</span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between py-1.5" style={{ borderBottom: '1px solid var(--border)' }}>
             <span style={{ color: 'var(--muted)' }}>৳/kWh delivered</span>
             <span className="num font-medium">৳{costs.costPerKwhDelivered.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between py-1.5" style={{ borderBottom: '1px solid var(--border)' }}>
             <span style={{ color: 'var(--muted)' }}>Annual savings</span>
             <span className="num font-medium">৳{costs.annualSavings.toFixed(0)}</span>
           </div>
           {project.pv && (
-            <div className="flex justify-between">
+            <div className="flex justify-between py-1.5" style={{ borderBottom: '1px solid var(--border)' }}>
               <span style={{ color: 'var(--muted)' }}>Solar/day</span>
               <span className="num font-medium">{(result.solarGeneratedWh / 1000).toFixed(1)} kWh</span>
             </div>
@@ -1117,9 +1177,9 @@ function CostsStep({ costs, result, project }: {
       </div>
 
       {/* Questions for installer */}
-      <div className="p-5 rounded-2xl" style={{ background: 'var(--paper-warm)', border: '1px solid var(--border)' }}>
-        <div className="eyebrow mb-3">Questions to ask your installer</div>
-        <ul className="space-y-2 text-sm">
+      <div className="p-3 md:p-5 rounded-xl md:rounded-2xl" style={{ background: 'var(--paper-warm)', border: '1px solid var(--border)' }}>
+        <div className="eyebrow mb-2 md:mb-3 text-[10px] md:text-xs">Questions to ask your installer</div>
+        <ul className="space-y-2 md:space-y-3 text-xs md:text-sm">
           {[
             'What is the inverter\'s actual efficiency curve at my load levels?',
             'What charge profile does the battery need? Is the inverter compatible?',
@@ -1143,9 +1203,9 @@ function CostsStep({ costs, result, project }: {
 // ============================================================
 function QuickStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="p-3 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-      <div className="eyebrow mb-1">{label}</div>
-      <div className="text-lg num font-medium">{value}</div>
+    <div className="p-2 md:p-3 rounded-lg md:rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+      <div className="eyebrow mb-0.5 md:mb-1 text-[10px] md:text-xs">{label}</div>
+      <div className="text-base md:text-lg num font-medium">{value}</div>
     </div>
   );
 }

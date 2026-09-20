@@ -95,15 +95,15 @@ export function WizardPage() {
   };
 
   return (
-    <div className="pt-24 pb-16 min-h-screen">
-      <div className="container-narrow">
+    <div className="pt-16 md:pt-24 pb-20 md:pb-16 min-h-screen">
+      <div className="px-4 md:px-6 max-w-[720px] mx-auto">
         {/* Progress */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-4">
-            <div className="eyebrow">
+        <div className="mb-6 md:mb-12">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <div className="eyebrow text-[10px] md:text-xs">
               Step <span className="num">{currentIdx + 1}</span> of {steps.length - 1}
             </div>
-            <div className="num text-xs" style={{ color: 'var(--muted)' }}>
+            <div className="num text-[10px] md:text-xs" style={{ color: 'var(--muted)' }}>
               {Math.round((currentIdx / (steps.length - 1)) * 100)}%
             </div>
           </div>
@@ -208,35 +208,34 @@ export function WizardPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setAnswers({ ...answers, goal: 'basic' })}
-                    className="p-6 text-left rounded-2xl transition-all"
-                    style={{
-                      background: answers.goal === 'basic' ? 'var(--ink)' : 'var(--surface)',
-                      color: answers.goal === 'basic' ? 'var(--paper)' : 'var(--ink)',
-                      border: answers.goal === 'basic' ? '1px solid var(--ink)' : '1px solid var(--border)',
-                    }}
-                  >
-                    <div className="mb-2">
-                      <Circle className="w-8 h-8" />
-                    </div>
-                    <div className="font-medium">Basic comfort</div>
-                    <div className="text-xs mt-1 opacity-60">Fans, lights, router</div>
-                  </button>
-                  <button
-                    onClick={() => setAnswers({ ...answers, goal: 'most' })}
-                    className="p-6 text-left rounded-2xl transition-all"
-                    style={{
-                      background: answers.goal === 'most' ? 'var(--ink)' : 'var(--surface)',
-                      color: answers.goal === 'most' ? 'var(--paper)' : 'var(--ink)',
-                      border: answers.goal === 'most' ? '1px solid var(--ink)' : '1px solid var(--border)',
-                    }}
-                  >
-                    <div className="mb-2">
-                      <CircleDot className="w-8 h-8" />
-                    </div>
-                    <div className="font-medium">Most of the home</div>
-                    <div className="text-xs mt-1 opacity-60">TV, fridge, multiple rooms</div>
-                  </button>
-                </div>
+                  className="p-4 md:p-6 text-left rounded-xl md:rounded-2xl transition-all min-h-[100px] md:min-h-[130px]"
+                  style={{
+                    background: answers.goal === 'basic' ? 'var(--ink)' : 'var(--surface)',
+                    color: answers.goal === 'basic' ? 'var(--paper)' : 'var(--ink)',
+                    border: answers.goal === 'basic' ? '1px solid var(--ink)' : '1px solid var(--border)',
+                  }}
+                >
+                  <div className="mb-2">
+                    <Circle className="w-6 h-6 md:w-8 md:h-8" />
+                  </div>
+                  <div className="font-medium text-sm md:text-base">Basic comfort</div>
+                  <div className="text-[10px] md:text-xs mt-1 opacity-60">Fans, lights, router</div>
+                </button>
+                <button
+                  onClick={() => setAnswers({ ...answers, goal: 'most' })}
+                  className="p-4 md:p-6 text-left rounded-xl md:rounded-2xl transition-all min-h-[100px] md:min-h-[130px]"
+                  style={{
+                    background: answers.goal === 'most' ? 'var(--ink)' : 'var(--surface)',
+                    color: answers.goal === 'most' ? 'var(--paper)' : 'var(--ink)',
+                    border: answers.goal === 'most' ? '1px solid var(--ink)' : '1px solid var(--border)',
+                  }}
+                >
+                  <div className="mb-2">
+                    <CircleDot className="w-6 h-6 md:w-8 md:h-8" />
+                  </div>
+                  <div className="font-medium text-sm md:text-base">Most of the home</div>
+                  <div className="text-[10px] md:text-xs mt-1 opacity-60">TV, fridge, multiple rooms</div>
+                </button>                </div>
                 <div>
                   <div className="flex items-baseline justify-between mb-3">
                     <label className="text-sm font-medium">Desired backup hours</label>
@@ -270,62 +269,60 @@ export function WizardPage() {
                   <button
                     key={opt.value}
                     onClick={() => setAnswers({ ...answers, solarInterest: opt.value as any })}
-                    className="w-full p-5 text-left rounded-xl transition-all flex items-center justify-between group"
-                    style={{
-                      background: answers.solarInterest === opt.value ? 'var(--ink)' : 'var(--surface)',
-                      color: answers.solarInterest === opt.value ? 'var(--paper)' : 'var(--ink)',
-                      border: answers.solarInterest === opt.value ? '1px solid var(--ink)' : '1px solid var(--border)',
-                    }}
-                  >
-                    <div>
-                      <div className="font-medium">{opt.label}</div>
-                      <div className="text-xs mt-0.5 opacity-60">{opt.desc}</div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                  </button>
-                ))}
-              </div>
-            </StepLayout>
-          )}
+                  className="w-full p-3 md:p-5 text-left rounded-lg md:rounded-xl transition-all flex items-center justify-between group min-h-[60px] md:min-h-[72px]"
+                  style={{
+                    background: answers.solarInterest === opt.value ? 'var(--ink)' : 'var(--surface)',
+                    color: answers.solarInterest === opt.value ? 'var(--paper)' : 'var(--ink)',
+                    border: answers.solarInterest === opt.value ? '1px solid var(--ink)' : '1px solid var(--border)',
+                  }}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-sm md:text-base">{opt.label}</div>
+                    <div className="text-[10px] md:text-xs mt-0.5 opacity-60 truncate">{opt.desc}</div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 opacity-40 group-hover:opacity-100 transition-all flex-shrink-0 ml-2" />
+                </button>
+              ))}
+            </div>
+          </StepLayout>
+        )}
 
-          {step === 'roof' && (
-            <StepLayout
-              eyebrow="Roof space"
-              title="Do you have roof or terrace access?"
-              subtitle="Solar panels need unshaded space. About 7 m² per kWp."
-            >
-              <div className="space-y-2">
-                {[
-                  { value: 'none', label: 'No roof access', desc: 'Apartment, no terrace' },
-                  { value: 'limited', label: 'Limited space', desc: 'Some shade, small area' },
-                  { value: 'ample', label: 'Ample space', desc: 'Open terrace, good sun' },
-                  { value: 'shaded', label: 'Mostly shaded', desc: 'Trees or buildings block sun' },
-                ].map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setAnswers({ ...answers, roofSpace: opt.value as any })}
-                    className="w-full p-5 text-left rounded-xl transition-all flex items-center justify-between group"
-                    style={{
+        {step === 'roof' && (
+          <StepLayout
+            eyebrow="Roof space"
+            title="Do you have roof or terrace access?"
+            subtitle="Solar panels need unshaded space. About 7 m² per kWp."
+          >
+            <div className="space-y-2">
+              {[
+                { value: 'none', label: 'No roof access', desc: 'Apartment, no terrace' },
+                { value: 'limited', label: 'Limited space', desc: 'Some shade, small area' },
+                { value: 'ample', label: 'Ample space', desc: 'Open terrace, good sun' },
+                { value: 'shaded', label: 'Mostly shaded', desc: 'Trees or buildings block sun' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setAnswers({ ...answers, roofSpace: opt.value as any })}
+                  className="w-full p-3 md:p-5 text-left rounded-lg md:rounded-xl transition-all flex items-center justify-between group min-h-[60px] md:min-h-[72px]"                    style={{
                       background: answers.roofSpace === opt.value ? 'var(--ink)' : 'var(--surface)',
                       color: answers.roofSpace === opt.value ? 'var(--paper)' : 'var(--ink)',
                       border: answers.roofSpace === opt.value ? '1px solid var(--ink)' : '1px solid var(--border)',
                     }}
                   >
-                    <div>
-                      <div className="font-medium">{opt.label}</div>
-                      <div className="text-xs mt-0.5 opacity-60">{opt.desc}</div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                  </button>
-                ))}
-              </div>
-            </StepLayout>
-          )}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-sm md:text-base">{opt.label}</div>
+                    <div className="text-[10px] md:text-xs mt-0.5 opacity-60 truncate">{opt.desc}</div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 opacity-40 group-hover:opacity-100 transition-all flex-shrink-0 ml-2" />
+                </button>
+              ))}
+            </div>
+          </StepLayout>
+        )}
 
-          {step === 'result' && (
-            <ResultStep answers={answers} onContinue={goToPlanner} />
-          )}
-        </div>
+        {step === 'result' && (
+          <ResultStep answers={answers} onContinue={goToPlanner} />
+        )}        </div>
 
         {/* Navigation */}
         {step !== 'result' && (
@@ -353,9 +350,9 @@ function StepLayout({ eyebrow, title, subtitle, children }: {
 }) {
   return (
     <div>
-      <div className="eyebrow mb-3">{eyebrow}</div>
-      <h1 className="display-lg mb-3">{title}</h1>
-      <p className="text-base mb-10" style={{ color: 'var(--muted)', maxWidth: '52ch' }}>{subtitle}</p>
+      <div className="eyebrow mb-2 md:mb-3 text-[10px] md:text-xs">{eyebrow}</div>
+      <h1 className="text-2xl md:text-3xl lg:text-4xl font-medium tracking-tight mb-2 md:mb-3" style={{ fontFamily: 'var(--font-display)' }}>{title}</h1>
+      <p className="text-sm md:text-base mb-6 md:mb-10 leading-relaxed" style={{ color: 'var(--muted)', maxWidth: '52ch' }}>{subtitle}</p>
       {children}
     </div>
   );
@@ -410,9 +407,9 @@ function ResultStep({ answers, onContinue }: { answers: WizardAnswers; onContinu
         You need a <em style={{ color: 'var(--accent)' }}>{systemType}</em> system.
       </h1>
 
-      <div className="space-y-6 mb-10">
-        <div className="p-6 rounded-2xl" style={{ background: 'var(--paper-warm)', border: '1px solid var(--border)' }}>
-          <div className="eyebrow mb-3" style={{ color: 'var(--success)' }}>Why this fits</div>
+      <div className="space-y-3 md:space-y-6 mb-6 md:mb-10">
+        <div className="p-3 md:p-6 rounded-xl md:rounded-2xl" style={{ background: 'var(--paper-warm)', border: '1px solid var(--border)' }}>
+          <div className="eyebrow mb-2 md:mb-3 text-[10px] md:text-xs" style={{ color: 'var(--success)' }}>Why this fits</div>
           <ul className="space-y-2">
             {reasons.map((r, i) => (
               <li key={i} className="flex items-start gap-2 text-sm">
@@ -424,8 +421,8 @@ function ResultStep({ answers, onContinue }: { answers: WizardAnswers; onContinu
         </div>
 
         {cautions.length > 0 && (
-          <div className="p-6 rounded-2xl" style={{ background: 'var(--warning-soft)', border: '1px solid #fde68a' }}>
-            <div className="eyebrow mb-3" style={{ color: 'var(--warning)' }}>Watch out</div>
+          <div className="p-3 md:p-6 rounded-xl md:rounded-2xl" style={{ background: 'var(--warning-soft)', border: '1px solid #fde68a' }}>
+            <div className="eyebrow mb-2 md:mb-3 text-[10px] md:text-xs" style={{ color: 'var(--warning)' }}>Watch out</div>
             <ul className="space-y-2">
               {cautions.map((c, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
@@ -437,9 +434,9 @@ function ResultStep({ answers, onContinue }: { answers: WizardAnswers; onContinu
           </div>
         )}
 
-        <div className="p-6 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <div className="eyebrow mb-3">Your selections</div>
-          <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="p-3 md:p-6 rounded-xl md:rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <div className="eyebrow mb-2 md:mb-3 text-[10px] md:text-xs">Your selections</div>
+          <div className="grid grid-cols-2 gap-2 md:gap-3 text-xs md:text-sm">
             <div>
               <div style={{ color: 'var(--muted)' }} className="text-xs mb-1">Loads</div>
               <div className="num font-medium">{answers.selectedLoads.length} items</div>

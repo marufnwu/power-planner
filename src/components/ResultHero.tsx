@@ -46,44 +46,44 @@ export function ResultHero({ project, result, totalLoadW }: ResultHeroProps) {
   return (
     <div className="relative overflow-hidden">
       {/* Background accent */}
-      <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full opacity-[0.04]" style={{ background: 'var(--accent)' }} />
+      <div className="absolute -top-10 -right-10 md:-top-20 md:-right-20 w-40 h-40 md:w-80 md:h-80 rounded-full opacity-[0.04]" style={{ background: 'var(--accent)' }} />
       
       <div className="relative">
-        <div className="eyebrow mb-4">Live result</div>
+        <div className="eyebrow mb-2 md:mb-4 text-[10px] md:text-xs">Live result</div>
         
         {/* Big number */}
-        <div className="flex items-baseline gap-3 mb-2">
-          <div className="display-xl tabular-nums" style={{ color: 'var(--ink)' }}>
+        <div className="flex items-baseline gap-2 md:gap-3 mb-2">
+          <div className="text-3xl md:text-5xl lg:text-6xl font-medium tabular-nums num" style={{ color: 'var(--ink)', fontFamily: 'var(--font-display)' }}>
             {finiteRuntime ? (
               <AnimatedNumber value={runtime} decimals={1} />
             ) : (
               <span>∞</span>
             )}
           </div>
-          <div className="display-md" style={{ color: 'var(--muted)' }}>
+          <div className="text-base md:text-xl lg:text-2xl" style={{ color: 'var(--muted)', fontFamily: 'var(--font-display)' }}>
             hours
           </div>
         </div>
         
         {/* Context */}
-        <p className="text-base md:text-lg mb-6" style={{ color: 'var(--muted)', maxWidth: '48ch' }}>
+        <p className="text-xs md:text-base lg:text-lg mb-3 md:mb-6 leading-relaxed" style={{ color: 'var(--muted)', maxWidth: '48ch' }}>
           Your <span style={{ color: 'var(--ink)' }} className="font-medium">{project.inverter.ratedVA}VA</span> system
           with <span style={{ color: 'var(--ink)' }} className="font-medium">{project.bank.unit.ratedAh}Ah {project.bank.unit.chemistry}</span> battery
           runs <span style={{ color: 'var(--ink)' }} className="font-medium num">{totalLoadW.toFixed(0)}W</span> for this long.
         </p>
         
-        <p className="text-sm italic" style={{ color: 'var(--muted)', fontFamily: 'var(--font-display)' }}>
+        <p className="text-xs md:text-sm italic leading-relaxed" style={{ color: 'var(--muted)', fontFamily: 'var(--font-display)' }}>
           {summary}
         </p>
         
         {/* Recovery indicator */}
-        <div className="mt-6">
-          <div className="flex items-center gap-3 mb-2">
+        <div className="mt-3 md:mt-6">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-2">
             <div className={`badge ${
               result.recoveryStatus === 'yes' ? 'badge-success' :
               result.recoveryStatus === 'barely' ? 'badge-warning' :
               'badge-danger'
-            }`}>
+            } text-[10px] md:text-xs`}>
               <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{
                 background: result.recoveryStatus === 'yes' ? 'var(--success)' :
                            result.recoveryStatus === 'barely' ? 'var(--warning)' :

@@ -469,6 +469,40 @@ input[type="checkbox"] {
   animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Hide scrollbar for horizontal scroll elements */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Better mobile touch behavior */
+* {
+  -webkit-touch-callout: none;
+}
+
+a, button, input, select, textarea {
+  -webkit-touch-callout: default;
+}
+
+/* Fix iOS Safari 100vh issue */
+.min-h-screen {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+html {
+  height: -webkit-fill-available;
+}
+
+/* Prevent text size adjust on orientation change */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 .animate-slide-right {
   animation: slideInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
