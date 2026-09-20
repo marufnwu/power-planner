@@ -385,91 +385,162 @@ function LoadRow({ load, onUpdate, onRemove }: { load: LoadItem; onUpdate: (u: P
         boxShadow: expanded ? '0 2px 8px rgba(255, 77, 28, 0.08)' : 'none'
       }}
     >
-      {/* Compact main row */}
-      <div className="px-3 py-2.5 flex items-center gap-3">
-        {/* Name and badges */}
-        <div className="flex-1 min-w-0 flex items-center gap-2">
-          <input
-            value={load.label}
-            onChange={e => onUpdate({ label: e.target.value })}
-            className="flex-1 text-sm font-medium bg-transparent outline-none border-b border-transparent hover:border-[var(--border)] focus:border-[var(--accent)] transition-colors min-w-0"
-            style={{ color: 'var(--ink)' }}
-            placeholder="Load name"
-          />
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <span 
-              className="text-[10px] px-1.5 py-0.5 rounded font-medium" 
-              style={{ 
-                background: load.onBackupCircuit ? 'var(--success-soft)' : 'var(--border)',
-                color: load.onBackupCircuit ? 'var(--success)' : 'var(--muted)'
-              }}
+      {/* Compact main row - mobile optimized */}
+      <div className="p-3 md:px-3 md:py-2.5">
+        {/* Mobile: Stacked layout */}
+        <div className="md:hidden space-y-2">
+          {/* Top row: Name + badges + actions */}
+          <div className="flex items-center gap-2">
+            <input
+              value={load.label}
+              onChange={e => onUpdate({ label: e.target.value })}
+              className="flex-1 text-sm font-medium bg-transparent outline-none border-b border-transparent focus:border-[var(--accent)] transition-colors min-w-0"
+              style={{ color: 'var(--ink)' }}
+              placeholder="Load name"
+            />
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <span 
+                className="text-[10px] px-1.5 py-0.5 rounded font-medium" 
+                style={{ 
+                  background: load.onBackupCircuit ? 'var(--success-soft)' : 'var(--border)',
+                  color: load.onBackupCircuit ? 'var(--success)' : 'var(--muted)'
+                }}
+              >
+                {load.onBackupCircuit ? '⚡' : '🔌'}
+              </span>
+              <span className="text-[10px]" style={{ color: 'var(--muted)' }}>
+                {load.usageProfile === 'day' ? '☀️' : load.usageProfile === 'night' ? '🌙' : load.usageProfile === 'both' ? '⚡' : '◌'}
+              </span>
+            </div>
+            {/* Mobile: Larger action buttons */}
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-[var(--paper-warm)] transition-colors"
+              aria-label="Toggle details"
             >
-              {load.onBackupCircuit ? '⚡' : '🔌'}
-            </span>
-            <span className="text-[10px]" style={{ color: 'var(--muted)' }}>
-              {load.usageProfile === 'day' ? '☀️' : load.usageProfile === 'night' ? '🌙' : load.usageProfile === 'both' ? '⚡' : '◌'}
-            </span>
+              {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            </button>
+            <button
+              onClick={onRemove}
+              className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-red-50 text-[var(--muted)] hover:text-red-600 transition-colors"
+              aria-label="Remove load"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          </div>
+          
+          {/* Bottom row: Stats */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 flex items-center gap-1">
+              <span className="text-[10px]" style={{ color: 'var(--muted)' }}>×</span>
+              <input
+                type="number" min={1} max={20} value={load.qty}
+                onChange={e => onUpdate({ qty: Math.max(1, +e.target.value) })}
+                className="flex-1 h-10 text-center text-sm font-semibold bg-[var(--paper-warm)] rounded outline-none num"
+                style={{ color: 'var(--ink)' }}
+              />
+            </div>
+            <div className="flex-1 flex items-center gap-1">
+              <input
+                type="number" min={1} value={load.watts}
+                onChange={e => onUpdate({ watts: Math.max(1, +e.target.value) })}
+                className="flex-1 h-10 text-center text-sm font-semibold bg-[var(--paper-warm)] rounded outline-none num"
+                style={{ color: 'var(--ink)' }}
+              />
+              <span className="text-[10px]" style={{ color: 'var(--muted)' }}>W</span>
+            </div>
+            <div className="text-sm font-bold num px-2" style={{ color: 'var(--accent)' }}>
+              {(load.qty * load.watts).toFixed(0)}W
+            </div>
           </div>
         </div>
-
-        {/* Compact stats */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="flex items-center gap-1">
-            <span className="text-[10px]" style={{ color: 'var(--muted)' }}>×</span>
+        
+        {/* Desktop: Horizontal layout */}
+        <div className="hidden md:flex items-center gap-3">
+          {/* Name and badges */}
+          <div className="flex-1 min-w-0 flex items-center gap-2">
             <input
-              type="number" min={1} max={20} value={load.qty}
-              onChange={e => onUpdate({ qty: Math.max(1, +e.target.value) })}
-              className="w-10 text-center text-sm font-semibold bg-transparent outline-none num"
+              value={load.label}
+              onChange={e => onUpdate({ label: e.target.value })}
+              className="flex-1 text-sm font-medium bg-transparent outline-none border-b border-transparent hover:border-[var(--border)] focus:border-[var(--accent)] transition-colors min-w-0"
               style={{ color: 'var(--ink)' }}
+              placeholder="Load name"
             />
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span 
+                className="text-[10px] px-1.5 py-0.5 rounded font-medium" 
+                style={{ 
+                  background: load.onBackupCircuit ? 'var(--success-soft)' : 'var(--border)',
+                  color: load.onBackupCircuit ? 'var(--success)' : 'var(--muted)'
+                }}
+              >
+                {load.onBackupCircuit ? '⚡' : '🔌'}
+              </span>
+              <span className="text-[10px]" style={{ color: 'var(--muted)' }}>
+                {load.usageProfile === 'day' ? '☀️' : load.usageProfile === 'night' ? '🌙' : load.usageProfile === 'both' ? '⚡' : '◌'}
+              </span>
+            </div>
           </div>
-          <div className="w-px h-4" style={{ background: 'var(--border)' }} />
-          <div className="flex items-center gap-1">
-            <input
-              type="number" min={1} value={load.watts}
-              onChange={e => onUpdate({ watts: Math.max(1, +e.target.value) })}
-              className="w-12 text-center text-sm font-semibold bg-transparent outline-none num"
-              style={{ color: 'var(--ink)' }}
-            />
-            <span className="text-[10px]" style={{ color: 'var(--muted)' }}>W</span>
-          </div>
-          <div className="w-px h-4" style={{ background: 'var(--border)' }} />
-          <div className="text-sm font-bold num" style={{ color: 'var(--accent)' }}>
-            {(load.qty * load.watts).toFixed(0)}W
-          </div>
-        </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="p-1.5 rounded hover:bg-[var(--paper-warm)] transition-colors"
-            aria-label="Toggle details"
-          >
-            {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
-          <button
-            onClick={onRemove}
-            className="p-1.5 rounded hover:bg-red-50 text-[var(--muted)] hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
-            aria-label="Remove load"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+          {/* Compact stats */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1">
+              <span className="text-[10px]" style={{ color: 'var(--muted)' }}>×</span>
+              <input
+                type="number" min={1} max={20} value={load.qty}
+                onChange={e => onUpdate({ qty: Math.max(1, +e.target.value) })}
+                className="w-12 text-center text-sm font-semibold bg-transparent outline-none num"
+                style={{ color: 'var(--ink)' }}
+              />
+            </div>
+            <div className="w-px h-4" style={{ background: 'var(--border)' }} />
+            <div className="flex items-center gap-1">
+              <input
+                type="number" min={1} value={load.watts}
+                onChange={e => onUpdate({ watts: Math.max(1, +e.target.value) })}
+                className="w-14 text-center text-sm font-semibold bg-transparent outline-none num"
+                style={{ color: 'var(--ink)' }}
+              />
+              <span className="text-[10px]" style={{ color: 'var(--muted)' }}>W</span>
+            </div>
+            <div className="w-px h-4" style={{ background: 'var(--border)' }} />
+            <div className="text-sm font-bold num" style={{ color: 'var(--accent)' }}>
+              {(load.qty * load.watts).toFixed(0)}W
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="p-2 rounded hover:bg-[var(--paper-warm)] transition-colors"
+              aria-label="Toggle details"
+            >
+              {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={onRemove}
+              className="p-2 rounded hover:bg-red-50 text-[var(--muted)] hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+              aria-label="Remove load"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Compact expanded section */}
       {expanded && (
-        <div className="border-t px-3 py-2.5 space-y-2.5" style={{ borderColor: 'var(--border)', background: 'var(--paper-warm)' }}>
-          {/* Usage pattern - compact pills */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-medium" style={{ color: 'var(--muted)' }}>{t('load.usagePattern')}:</span>
-            <div className="flex gap-1">
+        <div className="border-t p-3 md:px-3 md:py-2.5 space-y-3" style={{ borderColor: 'var(--border)', background: 'var(--paper-warm)' }}>
+          {/* Usage pattern - mobile: vertical, desktop: horizontal */}
+          <div className="space-y-2">
+            <span className="text-xs font-medium block" style={{ color: 'var(--muted)' }}>{t('load.usagePattern')}:</span>
+            <div className="grid grid-cols-4 gap-1.5">
               {(['day', 'night', 'both', 'occasional'] as const).map(profile => (
                 <button
                   key={profile}
                   onClick={() => onUpdate({ usageProfile: profile })}
-                  className="px-2 py-0.5 rounded text-[10px] font-medium transition-all"
+                  className="h-10 rounded text-xs font-medium transition-all"
                   style={{
                     background: load.usageProfile === profile ? 'var(--ink)' : 'var(--surface)',
                     color: load.usageProfile === profile ? 'var(--paper)' : 'var(--muted)',
@@ -485,35 +556,35 @@ function LoadRow({ load, onUpdate, onRemove }: { load: LoadItem; onUpdate: (u: P
             </div>
           </div>
 
-          {/* Compact advanced settings */}
-          <div className="grid grid-cols-3 gap-2">
+          {/* Advanced settings - mobile: stacked, desktop: 3-column */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
-              <label className="text-[10px] font-medium mb-0.5 block" style={{ color: 'var(--muted)' }}>
-                PF
+              <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>
+                Power Factor
               </label>
               <input
                 type="number" min={0.1} max={1} step={0.01} value={load.powerFactor}
                 onChange={e => onUpdate({ powerFactor: +e.target.value })}
-                className="input input-mono text-xs py-1"
+                className="input input-mono text-sm h-10"
               />
             </div>
             <div>
-              <label className="text-[10px] font-medium mb-0.5 block" style={{ color: 'var(--muted)' }}>
-                Duty
+              <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>
+                Duty Cycle
               </label>
               <input
                 type="number" min={0} max={1} step={0.01} value={load.dutyCycle}
                 onChange={e => onUpdate({ dutyCycle: +e.target.value })}
-                className="input input-mono text-xs py-1"
+                className="input input-mono text-sm h-10"
               />
             </div>
             <div>
-              <label className="text-[10px] font-medium mb-0.5 block" style={{ color: 'var(--muted)' }}>
+              <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>
                 Circuit
               </label>
               <button
                 onClick={() => onUpdate({ onBackupCircuit: !load.onBackupCircuit })}
-                className="w-full px-2 py-1 rounded text-xs font-medium transition-all"
+                className="w-full h-10 rounded text-sm font-medium transition-all"
                 style={{
                   background: load.onBackupCircuit ? 'var(--success)' : 'var(--muted)',
                   color: 'var(--paper)'
@@ -524,7 +595,7 @@ function LoadRow({ load, onUpdate, onRemove }: { load: LoadItem; onUpdate: (u: P
             </div>
           </div>
 
-          {/* Hourly editor - more compact */}
+          {/* Hourly editor */}
           <HourlyUsageEditor
             hourly={load.hourly}
             usageProfile={load.usageProfile}
@@ -619,21 +690,21 @@ function SystemStep({ project, setProject, sizing, result, calcSettings, setCalc
   setCalcSettings: (settings: CalculationSettings) => void;
 }) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 md:space-y-8">
       {/* Inverter */}
       <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Zap className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-          <h2 className="text-xl font-medium tracking-tight">Inverter</h2>
-          <span className="badge badge-warning text-[10px]">Default · check datasheet</span>
+        <div className="flex items-center gap-2 mb-3 md:mb-4">
+          <Zap className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--accent)' }} />
+          <h2 className="text-lg md:text-xl font-medium tracking-tight">Inverter</h2>
+          <span className="badge badge-warning text-[10px] ml-auto">Default · check datasheet</span>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
           <div>
             <label className="text-xs mb-1 block" style={{ color: 'var(--muted)' }}>Rated VA</label>
             <input
               type="number" value={project.inverter.ratedVA}
               onChange={e => setProject(p => ({ ...p, inverter: { ...p.inverter, ratedVA: +e.target.value } }))}
-              className="input input-mono"
+              className="input input-mono h-11"
             />
           </div>
           <div>
@@ -641,7 +712,7 @@ function SystemStep({ project, setProject, sizing, result, calcSettings, setCalc
             <input
               type="number" value={project.inverter.ratedW}
               onChange={e => setProject(p => ({ ...p, inverter: { ...p.inverter, ratedW: +e.target.value } }))}
-              className="input input-mono"
+              className="input input-mono h-11"
             />
           </div>
           <div>
@@ -649,7 +720,7 @@ function SystemStep({ project, setProject, sizing, result, calcSettings, setCalc
             <select
               value={project.inverter.systemVoltage}
               onChange={e => setProject(p => ({ ...p, inverter: { ...p.inverter, systemVoltage: +e.target.value as 12|24|48 } }))}
-              className="input"
+              className="input h-11"
             >
               <option value={12}>12V</option>
               <option value={24}>24V</option>
@@ -661,20 +732,20 @@ function SystemStep({ project, setProject, sizing, result, calcSettings, setCalc
             <input
               type="number" value={project.inverter.idleW}
               onChange={e => setProject(p => ({ ...p, inverter: { ...p.inverter, idleW: +e.target.value } }))}
-              className="input input-mono"
+              className="input input-mono h-11"
             />
           </div>
         </div>
-        <p className="text-xs mt-3 num" style={{ color: 'var(--muted)' }}>
+        <p className="text-xs mt-2 md:mt-3 num" style={{ color: 'var(--muted)' }}>
           Sizing suggests: {sizing.recommendedVA} VA · {sizing.systemVoltage}V system
         </p>
       </div>
 
       {/* Battery */}
       <div>
-        <div className="flex items-center gap-2 mb-4">
-          <BatteryIcon className="w-4 h-4" style={{ color: 'var(--success)' }} />
-          <h2 className="text-xl font-medium tracking-tight">Battery</h2>
+        <div className="flex items-center gap-2 mb-3 md:mb-4">
+          <BatteryIcon className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--success)' }} />
+          <h2 className="text-lg md:text-xl font-medium tracking-tight">Battery</h2>
         </div>
         <BatteryCustomizer
           selectedBattery={project.bank.unit}
@@ -691,12 +762,12 @@ function SystemStep({ project, setProject, sizing, result, calcSettings, setCalc
 
       {/* Solar */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Sun className="w-4 h-4" style={{ color: '#f59e0b' }} />
-            <h2 className="text-xl font-medium tracking-tight">Solar panels</h2>
+        <div className="flex items-center justify-between mb-3 md:mb-4 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sun className="w-4 h-4 flex-shrink-0" style={{ color: '#f59e0b' }} />
+            <h2 className="text-lg md:text-xl font-medium tracking-tight truncate">Solar panels</h2>
           </div>
-          <label className="flex items-center gap-2 cursor-pointer text-sm">
+          <label className="flex items-center gap-2 cursor-pointer text-sm flex-shrink-0">
             <input
               type="checkbox"
               checked={!!project.pv}
@@ -707,18 +778,19 @@ function SystemStep({ project, setProject, sizing, result, calcSettings, setCalc
                   setProject(p => { const { pv, ...rest } = p; return rest as Project; });
                 }
               }}
+              className="w-5 h-5"
             />
             <span>Enable</span>
           </label>
         </div>
         {project.pv && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-5 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 p-3 md:p-5 rounded-xl md:rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--muted)' }}>Panel Wp</label>
               <input
                 type="number" value={project.pv.panel.wp}
                 onChange={e => setProject(p => ({ ...p, pv: p.pv ? { ...p.pv, panel: { ...p.pv.panel, wp: +e.target.value } } : p.pv }))}
-                className="input input-mono"
+                className="input input-mono h-11"
               />
             </div>
             <div>
@@ -726,7 +798,7 @@ function SystemStep({ project, setProject, sizing, result, calcSettings, setCalc
               <input
                 type="number" min={1} max={6} value={project.pv.series}
                 onChange={e => setProject(p => ({ ...p, pv: p.pv ? { ...p.pv, series: Math.max(1, +e.target.value) } : p.pv }))}
-                className="input input-mono"
+                className="input input-mono h-11"
               />
             </div>
             <div>
@@ -734,12 +806,12 @@ function SystemStep({ project, setProject, sizing, result, calcSettings, setCalc
               <input
                 type="number" min={1} max={4} value={project.pv.parallelStrings}
                 onChange={e => setProject(p => ({ ...p, pv: p.pv ? { ...p.pv, parallelStrings: Math.max(1, +e.target.value) } : p.pv }))}
-                className="input input-mono"
+                className="input input-mono h-11"
               />
             </div>
             <div>
               <label className="text-xs mb-1 block" style={{ color: 'var(--muted)' }}>Total Wp</label>
-              <div className="input input-mono flex items-center" style={{ background: 'var(--paper-warm)' }}>
+              <div className="input input-mono flex items-center h-11" style={{ background: 'var(--paper-warm)' }}>
                 {project.pv.panel.wp * project.pv.series * project.pv.parallelStrings}
               </div>
             </div>
