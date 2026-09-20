@@ -20,6 +20,8 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, ReferenceLine } from 'recharts';
 import { Share2, Printer, ChevronDown, ChevronUp, Info, AlertTriangle, Check, Zap, Sun, Moon, Battery as BatteryIcon, Settings2, Plug, RefreshCw, X, Plus, ArrowRight, Trash2 } from 'lucide-react';
 import { DebugPanel } from '../components/DebugPanel';
+import { ProposalGenerator } from '../components/ProposalGenerator';
+import { CompatibilityChecker } from '../components/CompatibilityChecker';
 
 type PlannerStep = 'loads' | 'grid' | 'system' | 'results' | 'costs';
 
@@ -1433,6 +1435,12 @@ function CostsStep({ costs, result, project }: {
           ))}
         </ul>
       </div>
+
+      {/* Equipment Compatibility Checker */}
+      <CompatibilityChecker project={project} />
+
+      {/* Professional Proposal Generator */}
+      <ProposalGenerator project={project} result={result} />
     </div>
   );
 }

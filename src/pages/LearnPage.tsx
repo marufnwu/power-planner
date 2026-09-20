@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Wrench, BookOpen } from 'lucide-react';
 import { additionalArticles } from '../data/additionalArticles';
+import { diyGuides } from '../data/diyGuides';
 
 interface Article {
   id: string;
@@ -355,6 +356,41 @@ export function LearnPage() {
               </div>
             );
           })}
+        </div>
+
+        {/* DIY Guides Section */}
+        <div className="mt-12">
+          <div className="flex items-center gap-2 mb-4">
+            <Wrench className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+            <h2 className="text-xl font-semibold">DIY Installation Guides</h2>
+          </div>
+          <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
+            Step-by-step guides for installing and configuring your power system.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {diyGuides.map(guide => (
+              <div key={guide.id} className="p-4 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="font-semibold text-sm">{guide.title}</h3>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    guide.difficulty === 'beginner' ? 'bg-green-100 text-green-700' :
+                    guide.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {guide.difficulty}
+                  </span>
+                </div>
+                <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>{guide.summary}</p>
+                <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--muted)' }}>
+                  <span className="flex items-center gap-1">
+                    <BookOpen className="w-3 h-3" />
+                    {guide.sections.length} sections
+                  </span>
+                  <span>⏱ {guide.estimatedTime}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="mt-12 p-6 rounded-2xl" style={{ background: 'var(--ink)', color: 'var(--paper)' }}>
