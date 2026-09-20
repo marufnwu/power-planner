@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { I18nProvider, LocaleToggle } from './lib/i18n';
+import { ThemeToggle } from './components/ThemeToggle';
 import { Zap, Menu, X } from 'lucide-react';
 
 const HomePage = lazy(() => import('./pages/HomePage').then(m => ({ default: m.HomePage })));
@@ -87,6 +88,7 @@ function Layout() {
 
           {/* Actions */}
           <div className="flex items-center gap-2 md:gap-3">
+            <ThemeToggle />
             <LocaleToggle />
             <Link to="/plan" className="btn-primary text-sm py-2 px-4 hidden md:inline-flex">
               Open planner

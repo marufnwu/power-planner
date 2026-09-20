@@ -1148,9 +1148,47 @@ html {
   }
 }
 
-/* Dark mode support (future) */
-@media (prefers-color-scheme: dark) {
-  /* Can be enabled later if needed */
+/* Dark mode support */
+:root.dark {
+  --paper: #0a0a0a;
+  --paper-warm: #1a1a1a;
+  --surface: #1a1a1a;
+  --ink: #fafaf7;
+  --ink-soft: #e5e5e5;
+  --muted: #a3a3a3;
+  --faint: #6b6b6b;
+  --border: #2a2a2a;
+  --border-strong: #3a3a3a;
+}
+
+.dark body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.dark .card,
+.dark [style*="background: var(--surface)"] {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background: var(--paper-warm);
+  color: var(--ink);
+  border-color: var(--border);
+}
+
+.dark .btn-primary {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.dark .btn-secondary {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--border-strong);
 }
 
 /* Reduced motion */
