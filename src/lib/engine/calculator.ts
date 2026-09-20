@@ -2,6 +2,7 @@ import {
   Project, SimulationResult, TimeStep, Warning, SizingResult, CostResult,
   LoadItem, BatteryBank, Inverter, AssumptionSet
 } from '../../types';
+import { LoadSimulator } from './loadSimulator';
 
 // ============================================================
 // SIMULATION ENGINE v2.0 - Complete Rewrite
@@ -258,15 +259,18 @@ function isGridAvailable(
 // ============================================================
 
 /**
- * Priority-based load shedding
- * M0-P5: Now respects usageProfile, priority, and onBackupCircuit
+ * Priority-based load shedding with realistic load behavior
+ * Phase 1: Uses LoadSimulator for proper binary/cyclic/variable load handling
  */
 function shedLoadsByPriority(
   loads: LoadItem[],
-  hour: number,
+  loadSimulator: LoadSimulator,
+  timeSeconds: number,
   availablePowerDC: number,
   efficiency: number,
-  loadMultiplier: number
+  hour: number,
+  loadMultiplier: number,
+  seasonMultiplier: number = 1.0
 ): { servedWattsDC: number; unservedWattsAC: number; shedLoads: string[] } {
   // Sort by priority (1 = highest, 3 = lowest)
   const sortedLoads = [...loads]
@@ -279,33 +283,35 @@ function shedLoadsByPriority(
   const h = Math.floor(hour) % 24;
   
   for (const load of sortedLoads) {
-    // M0-P5: Respect usageProfile
-    let hourFraction = load.hourly[h] || 0;
+    // Get current load state from simulator
+    const hourFraction = load.hourly[h] || 0;
+    const { power: loadPowerAC, state } = loadSimulator.calculateLoadPower(
+      load,
+      timeSeconds,
+      availablePowerDC - servedWattsDC,
+      hourFraction * loadMultiplier,
+      seasonMultiplier
+    );
     
-    // If usageProfile is set and hourly is default, use profile
-    if (load.usageProfile && load.hourly.every(v => Math.abs(v - 0.5) < 0.01)) {
-      hourFraction = getUsageFraction(load.usageProfile, h);
-    }
+    const loadPowerDC = r2(loadPowerAC / efficiency);
     
-    const loadWattsAC = r2(load.qty * load.watts * load.dutyCycle * hourFraction * loadMultiplier);
-    const loadWattsDC = r2(loadWattsAC / efficiency);
-    
-    if (servedWattsDC + loadWattsDC <= availablePowerDC) {
-      servedWattsDC += loadWattsDC;
+    if (servedWattsDC + loadPowerDC <= availablePowerDC) {
+      // Can serve this load fully
+      servedWattsDC += loadPowerDC;
     } else {
-      // Can't serve this load
-      const remaining = availablePowerDC - servedWattsDC;
-      if (remaining > 0) {
-        // Partial service
-        const fraction = remaining / loadWattsDC;
-        servedWattsDC += remaining;
-        // M0-P1: Convert unserved from DC to AC (load-side) watts
-        unservedWattsAC += r2(loadWattsDC * (1 - fraction) * efficiency);
-        shedLoads.push(`${load.label} (${r2(fraction * 100)}%)`);
+      // Need to shed this load
+      const { power: reducedPower, shedAmount } = loadSimulator.shedLoad(load, state);
+      const reducedPowerDC = r2(reducedPower / efficiency);
+      
+      if (reducedPowerDC > 0) {
+        // Load was reduced (variable load)
+        servedWattsDC += reducedPowerDC;
+        unservedWattsAC += r2((loadPowerAC - reducedPower));
+        shedLoads.push(`${load.label} (${shedAmount})`);
       } else {
-        // No service - M0-P1: Convert DC to AC
-        unservedWattsAC += r2(loadWattsDC * efficiency);
-        shedLoads.push(load.label);
+        // Load was turned off or delayed
+        unservedWattsAC += r2(loadPowerAC);
+        shedLoads.push(`${load.label} (${shedAmount})`);
       }
     }
   }
@@ -323,6 +329,30 @@ function getUsageFraction(profile: string, hour: number): number {
     case 'both': return 0.5;
     case 'occasional': return 0.15;
     default: return 0.5;
+  }
+}
+
+/**
+ * Phase 1: Get seasonal multiplier based on day of year
+ * Assumes day 0 is start of simulation, maps to seasons
+ */
+function getSeasonMultiplier(day: number, site: any): number {
+  // Simplified seasonal model - can be enhanced with actual date
+  const dayOfYear = day % 365;
+  
+  // Bangladesh seasons (approximate)
+  if (dayOfYear >= 75 && dayOfYear < 165) {
+    // Summer: March-May (higher AC usage)
+    return site.seasonalMultiplier?.summer || 1.2;
+  } else if (dayOfYear >= 165 && dayOfYear < 255) {
+    // Monsoon: June-September (moderate usage)
+    return site.seasonalMultiplier?.monsoon || 1.0;
+  } else if (dayOfYear >= 255 && dayOfYear < 330) {
+    // Winter: October-February (heater usage)
+    return site.seasonalMultiplier?.winter || 1.1;
+  } else {
+    // Spring: moderate usage
+    return site.seasonalMultiplier?.spring || 0.9;
   }
 }
 
@@ -429,6 +459,9 @@ export function runSimulation(
   
   const activeLoads = loads.filter(l => l.onBackupCircuit);
   
+  // Phase 1: Create LoadSimulator for realistic load behavior
+  const loadSimulator = new LoadSimulator(activeLoads);
+  
   // Main simulation loop
   for (let step = 0; step < totalSteps; step++) {
     const minuteOfDay = (step % stepsPerDay) * stepMinutes;
@@ -436,6 +469,7 @@ export function runSimulation(
     const day = Math.floor(step / stepsPerDay);
     const isWarmup = day < warmupDays;
     const simDay = day - warmupDays;
+    const timeSeconds = step * stepMinutes * 60;
     
     // M0-P3: Record state at START of step (before calculations)
     const socAtStart = r2((energy / eNom) * 100);
@@ -443,9 +477,34 @@ export function runSimulation(
     // Fix #12 & #15: Grid availability
     const gridAvail = isGridAvailable(grid, minuteOfDay);
     
-    // Fix #4: Calculate load with proper usage profiles
-    const load = calculateLoadAtHour(activeLoads, hourOfDay, loadMultiplier);
-    const loadW = load.watts;
+    // Phase 1: Calculate load with realistic behavior using LoadSimulator
+    let loadW = 0;
+    let loadVA = 0;
+    const loadDetails: Array<{ load: LoadItem; power: number; state: any }> = [];
+    
+    for (const load of activeLoads) {
+      const hourFraction = load.hourly[Math.floor(hourOfDay)] || 0;
+      
+      // Apply seasonal multiplier if available
+      const seasonMultiplier = load.seasonalMultiplier 
+        ? getSeasonMultiplier(day, site) 
+        : 1.0;
+      
+      const { power, state } = loadSimulator.calculateLoadPower(
+        load,
+        timeSeconds,
+        inverter.ratedW, // Available power (will be refined during shedding)
+        hourFraction * loadMultiplier,
+        seasonMultiplier
+      );
+      
+      loadW += power;
+      loadVA += power / load.powerFactor;
+      loadDetails.push({ load, power, state });
+    }
+    
+    loadW = r2(loadW);
+    loadVA = r2(loadVA);
     
     // Fix #2: Use efficiency curve as-is, include idle
     const loadFraction = loadW / inverter.ratedW;
@@ -482,13 +541,16 @@ export function runSimulation(
       const remainingDC = r2(dcWatts - pvForLoad);
       
       if (remainingDC > 0) {
-        // M0: Priority-based load shedding
+        // Phase 1: Priority-based load shedding with LoadSimulator
         const shedding = shedLoadsByPriority(
-          activeLoads, 
-          hourOfDay, 
-          remainingDC, 
-          efficiency, 
-          loadMultiplier
+          activeLoads,
+          loadSimulator,
+          timeSeconds,
+          remainingDC,
+          efficiency,
+          hourOfDay,
+          loadMultiplier,
+          1.0 // Season multiplier (can be enhanced later)
         );
         
         // M0: Use batteryDrawW choke point

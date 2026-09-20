@@ -21,10 +21,19 @@ export interface ApplianceTemplate {
   source?: string;
   updatedAt: string;
   defaultUsage: UsageProfile;
+  
+  // Phase 1: Load behavior
+  loadType?: LoadType;
+  startupSurge?: number;
+  surgeDuration?: number;
+  minOnTime?: number;
+  minOffTime?: number;
+  states?: Array<{ label: string; power: number; priority: number }>;
 }
 
 export type UsageProfile = 'day' | 'night' | 'both' | 'occasional';
 export type LoadScenario = 'day_outage' | 'night_outage' | 'worst_case';
+export type LoadType = 'binary' | 'cyclic' | 'variable' | 'standby';
 
 export interface LoadItem {
   id: string;
@@ -38,8 +47,27 @@ export interface LoadItem {
   hourly: number[]; // 24 values 0-1
   onBackupCircuit: boolean;
   priority: 1 | 2 | 3;
-  usageProfile: UsageProfile; // NEW: when does this load actually run?
-  room?: string; // NEW: optional room/zone assignment
+  usageProfile: UsageProfile;
+  room?: string;
+  
+  // Phase 1: Load behavior
+  loadType?: LoadType; // Optional, defaults to 'binary'
+  startupSurge?: number; // Multiplier (e.g., 5 for fridge)
+  surgeDuration?: number; // Seconds
+  minOnTime?: number; // Minutes
+  minOffTime?: number; // Minutes
+  states?: Array<{ label: string; power: number; priority: number }>; // For variable loads
+  
+  // Phase 1: Occupancy
+  occupancySchedule?: 'always' | 'weekday' | 'weekend' | 'vacation';
+  
+  // Phase 1: Seasonal
+  seasonalMultiplier?: {
+    summer: number; // 1.0 = normal
+    monsoon: number;
+    winter: number;
+    spring: number;
+  };
 }
 
 export interface Inverter {
