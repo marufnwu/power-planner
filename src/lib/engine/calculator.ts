@@ -151,7 +151,10 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
   const vNom = bank.unit.nominalV * bank.series;
   const ahTotal = bank.unit.ratedAh * bank.parallel;
   const eNom = vNom * ahTotal;
-  const eMin = eNom * (1 - bank.unit.usableDoD);
+  
+  // Apply reserve capacity to minimum energy
+  const reservePct = options.reservePct / 100;
+  const eMin = eNom * (1 - bank.unit.usableDoD) + eNom * reservePct;
   const eMax = eNom;
   
   let energy = eMax * (options.initialSoC / 100);
@@ -206,9 +209,18 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
       if (hourOfDay >= site.sunrise && hourOfDay <= site.sunset) {
         const sinArg = Math.PI * (hourOfDay - site.sunrise) / dayLength;
         pvW = Math.min(pvWpTotal * peakFactor * Math.sin(sinArg) * site.systemDerate, pv.panel.wp * pv.series * pv.parallelStrings);
-        if (inverter.mppt && pvW > inverter.mppt.maxPvW) {
-          totalSolarClippedWh += (pvW - inverter.mppt.maxPvW) * (stepMinutes / 60);
-          pvW = inverter.mppt.maxPvW;
+        
+        // Apply cloudy day factor for worst-case days
+        if (site.worstCaseCloudyDays > 0 && day < site.worstCaseCloudyDays) {
+          pvW *= site.cloudyDayFactor;
+        }
+        
+        // Enforce MPPT limits
+        if (inverter.mppt) {
+          if (pvW > inverter.mppt.maxPvW) {
+            totalSolarClippedWh += (pvW - inverter.mppt.maxPvW) * (stepMinutes / 60);
+            pvW = inverter.mppt.maxPvW;
+          }
         }
       }
     }
@@ -238,15 +250,25 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
         const energyNeeded = remainingLoad * dtHours;
         const energyAvailable = energy - eMin;
         
+        // Apply battery discharge current limit
+        let dischargeW = remainingLoad;
+        if (bank.unit.maxDischargeA) {
+          const maxDischargeW = bank.unit.maxDischargeA * vNom;
+          if (dischargeW > maxDischargeW) {
+            unservedW += (dischargeW - maxDischargeW) * efficiency;
+            dischargeW = maxDischargeW;
+          }
+        }
+        
         if (energyAvailable >= energyNeeded) {
           energy -= energyNeeded;
-          battFlowW = -remainingLoad;
+          battFlowW = -dischargeW;
         } else {
           // Can't serve all load
           const servedFraction = energyAvailable / energyNeeded;
           energy = eMin;
-          unservedW = remainingLoad * (1 - servedFraction) * efficiency;
-          battFlowW = -remainingLoad * servedFraction;
+          unservedW += dischargeW * (1 - servedFraction) * efficiency;
+          battFlowW = -dischargeW * servedFraction;
         }
       } else {
         // Surplus solar → charge battery
@@ -267,14 +289,24 @@ export function runSimulation(project: Project, assumptionSet: AssumptionSet = '
         
         // Charge battery at max rate
         const chargeLimitW = getChargeLimitW(bank, inverter, energy, eMax, true);
-        const chargeW = chargeLimitW;
+        let chargeW = chargeLimitW;
+        
+        // Enforce total charge current limit (grid + solar)
+        if (inverter.maxTotalChargeA) {
+          const maxTotalChargeW = inverter.maxTotalChargeA * vNom;
+          if (chargeW > maxTotalChargeW) {
+            chargeW = maxTotalChargeW;
+          }
+        }
+        
         const energyAdded = chargeW * bank.unit.chargeEfficiency * dtHours;
         energy = Math.min(eMax, energy + energyAdded);
         battFlowW = chargeW;
         
         // Also use PV if available
         if (pvW > 0) {
-          const pvChargeW = Math.min(pvW, chargeLimitW - battFlowW);
+          const remainingChargeCapacity = Math.max(0, (inverter.maxTotalChargeA ? inverter.maxTotalChargeA * vNom : Infinity) - battFlowW);
+          const pvChargeW = Math.min(pvW, chargeLimitW - battFlowW, remainingChargeCapacity);
           if (pvChargeW > 0) {
             const pvEnergy = pvChargeW * bank.unit.chargeEfficiency * dtHours;
             energy = Math.min(eMax, energy + pvEnergy);
