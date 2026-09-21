@@ -374,27 +374,27 @@ export function AdvancedSettings({ settings, onChange }: AdvancedSettingsProps) 
   };
   
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+    <div className="rounded-xl md:rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full p-5 flex items-center justify-between hover:bg-[var(--paper-warm)] transition-colors"
+        className="w-full p-4 md:p-5 flex items-center justify-between hover:bg-[var(--paper-warm)] transition-colors min-h-[64px]"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--paper-warm)' }}>
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--paper-warm)' }}>
             <Settings className="w-5 h-5" style={{ color: 'var(--muted)' }} />
           </div>
-          <div className="text-left">
-            <div className="font-semibold text-sm">Advanced calculation settings</div>
+          <div className="text-left min-w-0">
+            <div className="font-semibold text-sm md:text-base">Advanced calculation settings</div>
             <div className="text-xs" style={{ color: 'var(--muted)' }}>Fine-tune for your exact conditions</div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <span className="badge badge-outline text-[10px] flex items-center gap-1">
             <Sparkles className="w-3 h-3" />
             Optional
           </span>
-          {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          {expanded ? <ChevronUp className="w-4 h-4 md:w-5 md:h-5" /> : <ChevronDown className="w-4 h-4 md:w-5 md:h-5" />}
         </div>
       </button>
       
@@ -402,8 +402,8 @@ export function AdvancedSettings({ settings, onChange }: AdvancedSettingsProps) 
       {expanded && (
         <div className="border-t" style={{ borderColor: 'var(--border)' }}>
           {/* Intro */}
-          <div className="p-5 bg-[var(--paper-warm)] border-b" style={{ borderColor: 'var(--border)' }}>
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>
+          <div className="p-4 md:p-5 bg-[var(--paper-warm)] border-b" style={{ borderColor: 'var(--border)' }}>
+            <p className="text-xs md:text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
               Adjust these parameters to match your actual conditions. Changes affect all calculations in real-time. 
               <span className="font-medium" style={{ color: 'var(--ink)' }}> High impact</span> settings have the biggest effect on results.
             </p>
@@ -420,23 +420,23 @@ export function AdvancedSettings({ settings, onChange }: AdvancedSettingsProps) 
                   {/* Group Header */}
                   <button
                     onClick={() => toggleGroup(group.id)}
-                    className="w-full p-4 flex items-center justify-between hover:bg-[var(--paper-warm)] transition-colors"
+                    className="w-full p-3 md:p-4 flex items-center justify-between hover:bg-[var(--paper-warm)] transition-colors min-h-[56px]"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${group.color}15` }}>
+                    <div className="flex items-center gap-2 md:gap-3">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${group.color}15` }}>
                         <Icon className="w-4 h-4" style={{ color: group.color }} />
                       </div>
-                      <div className="text-left">
-                        <div className="font-medium text-sm">{group.title}</div>
-                        <div className="text-xs" style={{ color: 'var(--muted)' }}>{group.description}</div>
+                      <div className="text-left min-w-0">
+                        <div className="font-medium text-xs md:text-sm">{group.title}</div>
+                        <div className="text-[10px] md:text-xs" style={{ color: 'var(--muted)' }}>{group.description}</div>
                       </div>
                     </div>
-                    {isGroupExpanded ? <ChevronUp className="w-4 h-4" style={{ color: 'var(--muted)' }} /> : <ChevronDown className="w-4 h-4" style={{ color: 'var(--muted)' }} />}
+                    {isGroupExpanded ? <ChevronUp className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--muted)' }} /> : <ChevronDown className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--muted)' }} />}
                   </button>
                   
                   {/* Group Settings */}
                   {isGroupExpanded && (
-                    <div className="px-5 pb-5 space-y-4">
+                    <div className="px-3 md:px-5 pb-3 md:pb-5 space-y-3 md:space-y-4">
                       {group.settings.map(setting => {
                         const value = settings[setting.key];
                         const isRecommended = value === setting.recommended;
@@ -444,21 +444,21 @@ export function AdvancedSettings({ settings, onChange }: AdvancedSettingsProps) 
                         return (
                           <div key={setting.key} className="group">
                             {/* Label and Impact */}
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <label className="text-sm font-medium">{setting.label}</label>
+                            <div className="flex flex-col md:flex-row md:items-start justify-between gap-2 mb-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <label className="text-xs md:text-sm font-medium">{setting.label}</label>
                                   {!isDefault(setting.key) && (
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--accent)', color: 'white' }}>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0" style={{ background: 'var(--accent)', color: 'white' }}>
                                       Modified
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-xs" style={{ color: 'var(--muted)' }}>
+                                <div className="text-[10px] md:text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>
                                   {setting.description}
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2 ml-3">
+                              <div className="flex items-center gap-2 flex-shrink-0">
                                 <div 
                                   className="text-[10px] px-2 py-0.5 rounded-full font-medium"
                                   style={{ 
@@ -472,7 +472,7 @@ export function AdvancedSettings({ settings, onChange }: AdvancedSettingsProps) 
                             </div>
                             
                             {/* Slider and Value */}
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 md:gap-3">
                               <div className="flex-1">
                                 <input
                                   type="range"
@@ -487,29 +487,29 @@ export function AdvancedSettings({ settings, onChange }: AdvancedSettingsProps) 
                                   }}
                                 />
                               </div>
-                              <div className="flex items-baseline gap-1 min-w-[80px] justify-end">
-                                <span className="text-lg font-semibold num" style={{ color: 'var(--ink)' }}>
+                              <div className="flex items-baseline gap-1 min-w-[70px] md:min-w-[80px] justify-end">
+                                <span className="text-base md:text-lg font-semibold num" style={{ color: 'var(--ink)' }}>
                                   {typeof value === 'number' && value % 1 !== 0 ? value.toFixed(2) : value}
                                 </span>
-                                <span className="text-xs" style={{ color: 'var(--muted)' }}>{setting.unit}</span>
+                                <span className="text-[10px] md:text-xs" style={{ color: 'var(--muted)' }}>{setting.unit}</span>
                               </div>
                             </div>
                             
                             {/* Example and Recommended */}
-                            <div className="flex items-center justify-between mt-2">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mt-2">
                               {setting.example && (
                                 <div className="text-[10px] flex items-center gap-1" style={{ color: 'var(--muted)' }}>
-                                  <Info className="w-3 h-3" />
-                                  {setting.example}
+                                  <Info className="w-3 h-3 flex-shrink-0" />
+                                  <span className="leading-relaxed">{setting.example}</span>
                                 </div>
                               )}
                               {!isRecommended && (
                                 <button
                                   onClick={() => updateSetting(setting.key, setting.recommended)}
-                                  className="text-[10px] px-2 py-0.5 rounded hover:bg-[var(--paper-warm)] transition-colors flex items-center gap-1"
+                                  className="text-[10px] px-2 py-1 rounded hover:bg-[var(--paper-warm)] transition-colors flex items-center gap-1 min-h-[32px]"
                                   style={{ color: group.color }}
                                 >
-                                  <RotateCcw className="w-3 h-3" />
+                                  <RotateCcw className="w-3 h-3 flex-shrink-0" />
                                   Use recommended ({setting.recommended}{setting.unit})
                                 </button>
                               )}
@@ -525,13 +525,13 @@ export function AdvancedSettings({ settings, onChange }: AdvancedSettingsProps) 
           </div>
           
           {/* Footer */}
-          <div className="p-5 bg-[var(--paper-warm)] border-t flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
-            <div className="text-xs" style={{ color: 'var(--muted)' }}>
+          <div className="p-3 md:p-5 bg-[var(--paper-warm)] border-t flex flex-col md:flex-row md:items-center justify-between gap-3" style={{ borderColor: 'var(--border)' }}>
+            <div className="text-[10px] md:text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>
               Defaults are conservative estimates. Adjust based on your actual equipment and conditions.
             </div>
             <button
               onClick={resetAll}
-              className="btn-ghost text-xs flex items-center gap-1"
+              className="btn-ghost text-xs flex items-center gap-1 min-h-[44px]"
             >
               <RotateCcw className="w-3 h-3" />
               Reset all to defaults

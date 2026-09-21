@@ -22,6 +22,7 @@ interface WizardAnswers {
 export function WizardPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<WizardStep>('shedding');
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [answers, setAnswers] = useState<WizardAnswers>({
     outagesPerDay: 4,
     outageDuration: 90,
