@@ -1288,3 +1288,139 @@ html {
 .animate-scale-in {
   animation: scale-in 0.2s ease-out;
 }
+
+/* ============================================================
+   CONSISTENCY ENFORCEMENT - Standardized Component Patterns
+   ============================================================ */
+
+/* All page containers follow this pattern */
+.page-container {
+  padding-top: 5rem; /* 80px for header */
+  padding-bottom: 4rem; /* 64px */
+  padding-left: 1rem;
+  padding-right: 1rem;
+  min-height: 100vh;
+}
+
+@media (min-width: 768px) {
+  .page-container {
+    padding-top: 6rem;
+    padding-bottom: 5rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+/* All section headers follow this pattern */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+  .section-header {
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+}
+
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+@media (min-width: 768px) {
+  .section-title {
+    font-size: 1.25rem;
+  }
+}
+
+/* All cards follow this pattern */
+.card-standard {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+@media (min-width: 768px) {
+  .card-standard {
+    padding: 1.5rem;
+    border-radius: 1rem;
+  }
+}
+
+/* All buttons follow this pattern */
+.btn-standard {
+  min-height: 44px;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+/* All inputs follow this pattern */
+.input-standard {
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.875rem;
+  width: 100%;
+  transition: all 0.15s;
+}
+
+.input-standard:focus {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.06);
+}
+
+/* All badges follow this pattern */
+.badge-standard {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+/* Consistent spacing utilities */
+.stack-sm > * + * {
+  margin-top: 0.5rem;
+}
+
+.stack-md > * + * {
+  margin-top: 1rem;
+}
+
+.stack-lg > * + * {
+  margin-top: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .stack-sm > * + * {
+    margin-top: 0.75rem;
+  }
+  
+  .stack-md > * + * {
+    margin-top: 1.5rem;
+  }
+  
+  .stack-lg > * + * {
+    margin-top: 2rem;
+  }
+}
